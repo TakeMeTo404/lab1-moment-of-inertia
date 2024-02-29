@@ -1,0 +1,5 @@
+export const mRange = [ .3, 1 ]
+export const dRange = [ .05, .1 ]
+export const dRangePx = [ 30, 50 ]
+export const tRange = [ 6, 10 ]
+export const n2Range = [ 45, 90 ]

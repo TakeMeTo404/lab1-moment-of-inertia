@@ -1,55 +1,58 @@
 <script lang="ts">
     import { onMount } from 'svelte'
     import { tweened } from 'svelte/motion'
-    import { readable, writable, get } from 'svelte/store'
+    import { readable, writable, get, derived } from 'svelte/store'
+    import { generateN2, generateT } from './calculations'
+    import { mRange, dRange, dRangePx } from './const'
     import { width, height, scale } from './sizes'
 
     const containerHeightPx: number = 700
     const bigDiskDiameterPx: number = 200
-    const smallDiskDiameterPx = 40
     const loadDiameterPx = 80
 
-    const g = 9.81
+    type State = 'idle' | 'falling' | 'fall-done'
+
+    let state: State = 'idle'
+
     let m = .6
     let d = .07 // in meters
-    let n1 = 1
+    let n1 = 3
 
-    let n2 = 20
-    let t = 4 // in seconds
+    let t: number = 1
+    let n2: number = 20
+    $: t = generateT(m, d, n1)
+    $: n2 = generateN2(m, d, n1)
 
-    let H = n1 * 2 * Math.PI * d // in meters
+    let smallDiskDiameterPx = dRangePx[0]
+    $: {
+        const fr = (d - dRange[0]) / (dRange[1] - dRange[0])
+        smallDiskDiameterPx = dRangePx[0] + (dRangePx[1] - dRangePx[0]) * fr
+    }
 
-    let loadPositionPx = containerHeightPx - (loadDiameterPx + n1 * smallDiskDiameterPx * Math.PI)
+    let loadBeginFallTopPx = 0
+    let loadEndFallTopPx = 0
+    $: {
+        loadEndFallTopPx = containerHeightPx - loadDiameterPx
+
+        loadBeginFallTopPx = containerHeightPx - (loadDiameterPx + n1 * smallDiskDiameterPx * Math.PI)
+    }
+
+    let loadPositionPx: number
     const loadFallingSpeedPx = tweened(0)
+
+    $: {
+        if (state === 'idle') {
+            loadPositionPx = loadBeginFallTopPx
+        }
+    }
 
     let disksRotation = 0
     const disksRotationSpeed = tweened(0)
 
-    onMount(async function loadFalling() {
-
-        const loadBeginTopPx = containerHeightPx - (loadDiameterPx + n1 * smallDiskDiameterPx * Math.PI)
-        const loadEndTopPx = containerHeightPx - loadDiameterPx
-
-        const loadBeginSpeedPx = 0
-        const loadEndSpeedPx = 2 * (loadEndTopPx - loadBeginTopPx) / t
-
-        const circlesBeginRotationSpeed = 0
-        const circlesEndRotationSpeed = 2 * n1 / t
-
-        await Promise.all([
-            loadFallingSpeedPx.set((loadEndSpeedPx - loadBeginSpeedPx), { duration: t * 1000 }),
-            disksRotationSpeed.set((circlesEndRotationSpeed - circlesBeginRotationSpeed), { duration: t * 1000 })
-        ])
-
-        loadFallingSpeedPx.set(0, { duration: 0 })
-
-        const timeOfCirclesRotating = 2 * n2 / circlesEndRotationSpeed
-
-        await disksRotationSpeed.set(0, { duration: timeOfCirclesRotating * 1000 })
-    })
+    const fallingTimePassed = tweened(0)
+    const disksRotationsDone = tweened(0)
 
     onMount(function listenToSpeeds() {
-
         let lastUpdate = performance.now()
 
         function loop() {
@@ -66,14 +69,64 @@
 
         loop()
     })
+
+    const onClickStart = async () => {
+        state = 'falling'
+
+        loadPositionPx = loadBeginFallTopPx
+        disksRotation = 0
+        loadFallingSpeedPx.set(0, { duration: 0 })
+        disksRotationSpeed.set(0, { duration: 0 })
+        fallingTimePassed.set(0, { duration: 0 })
+        disksRotationsDone.set(0, { duration: 0 })
+
+        const loadEndSpeedPx = 2 * (loadEndFallTopPx - loadBeginFallTopPx) / t
+
+        const circlesEndRotationSpeed = 2 * n1 / t
+
+        await Promise.all([
+            loadFallingSpeedPx.set(loadEndSpeedPx, { duration: t * 1000 }),
+            disksRotationSpeed.set(circlesEndRotationSpeed, { duration: t * 1000 }),
+            fallingTimePassed.set(t, { duration: t * 1000 })
+        ])
+
+        loadFallingSpeedPx.set(0, { duration: 0 })
+
+        const timeOfCirclesRotating = 2 * n2 / circlesEndRotationSpeed
+
+        await Promise.all([
+            disksRotationSpeed.set(0, { duration: timeOfCirclesRotating * 1000 }),
+            disksRotationsDone.set(n2, { duration: timeOfCirclesRotating * 1000 })
+        ])
+
+        state = 'fall-done'
+    }
+
+    const onClickNew = () => {
+
+
+        state = 'idle'
+    }
+
+    $: console.log(`Масса груза(г) = ${m}`)
+    $: console.log(`Диаметр шкива(м) = ${d}`)
+    $: console.log(`Количество оборотов n1 = ${n1}`)
+    $: console.log(`Время (с.) = ${t}`)
+    $: console.log(`Количество оборотов n2 = ${n2}`)
 </script>
 
 <div class="app" style="width: {width}px; height: {height}px; --scale: {$scale};">
-    <!--    <div class="toolbar">-->
-    <!--        <input bind:value={m} placeholder="Масса груза(г)...">-->
-    <!--        <input bind:value={d} placeholder="Диаметр диска...">-->
-    <!--        <input bind:value={n1} placeholder="Количество оборотов...">-->
-    <!--    </div>-->
+    <div class="toolbar">
+        <input bind:value={m} disabled={state !== 'idle'} type="number" min={mRange[0]} max={mRange[1]} step=".1" placeholder="Масса груза(г)...">
+        <input bind:value={d} disabled={state !== 'idle'} type="number" min={dRange[0]} max={dRange[1]} step=".01" placeholder="Диаметр шкива(м)...">
+        <input bind:value={n1} disabled={state !== 'idle'} type="number" min="3" max="4" step="1" placeholder="Количество оборотов...">
+        <button disabled={state !== 'idle'} on:click|preventDefault|stopPropagation={onClickStart}>Начать эксперимент</button>
+        <button disabled={state !== 'fall-done'} on:click|preventDefault|stopPropagation={onClickNew}>Новый эксперимент</button>
+        {#if state === 'falling' || state === 'fall-done'}
+            <span>Время падения груза: {$fallingTimePassed.toFixed(2)}сек.</span>
+            <span>Сделано оборотов: {$disksRotationsDone.toFixed(1)}</span>
+        {/if}
+    </div>
 
     <div class="physics-container" style="height: {containerHeightPx}px; width: {bigDiskDiameterPx}px;">
         <div class="big-disk disk"
@@ -92,6 +145,7 @@
         left: 50%;
         transform: translateX(-50%) translateY(-50%) scale(var(--scale));
         border: 1px solid black;
+        //background-image: url("./assets/bg.jpeg");
         background-size: cover;
     }
 
@@ -101,6 +155,7 @@
         top: 50%;
         transform: translateY(-50%);
 
+        width: 200px;
         display: flex;
         flex-direction: column;
         gap: 20px;
@@ -144,6 +199,4 @@
             border: 2px solid blue;
         }
     }
-
-
 </style>
