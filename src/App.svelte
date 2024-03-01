@@ -38,8 +38,6 @@
     }
 
     let loadPositionPx: number
-    const loadFallingSpeedPx = tweened(0)
-
     $: {
         if (state === 'idle') {
             loadPositionPx = loadBeginFallTopPx
@@ -53,50 +51,63 @@
     $: threadLengthPx = loadPositionPx - bigDiskDiameterPx / 2
 
     let disksRotation = 0
-    const disksRotationSpeed = tweened(0)
 
-    const fallingTimePassed = tweened(0)
-    const disksRotationsDone = tweened(0)
-
-    onMount(function listenToSpeeds() {
-        let lastUpdate = performance.now()
-
-        function loop() {
-            const now = performance.now()
-            const deltaSec = (now - lastUpdate) / 1000
-
-            loadPositionPx += get(loadFallingSpeedPx) * deltaSec
-            disksRotation += get(disksRotationSpeed) * deltaSec
-
-            lastUpdate = now
-
-            requestAnimationFrame(loop)
-        }
-
-        loop()
-    })
+    let loadFallingTime: number = 0
+    let disksRotationsDone: number = 0
+    let disksRotationDoneDisplayed: number
+    $: disksRotationDoneDisplayed = Math.floor(disksRotationsDone * 4) / 4
 
     const onClickStart = async () => {
         state = 'falling'
 
         const loadEndSpeedPx = 2 * (loadEndFallTopPx - loadBeginFallTopPx) / t
-
         const circlesEndRotationSpeed = 2 * n1 / t
+
+        const loadFallingSpeedPx = tweened(0)
+        const disksRotationSpeed = tweened(0)
+
+        let runRaf = true
+        let listenTo = {
+            loadFallingSpeed: true,
+            disksRotationSpeed: true,
+            fallingTime: true,
+            disksRotationsDone: false
+        }
+
+        let lastUpdate = performance.now()
+        requestAnimationFrame(function loop() {
+            if (!runRaf) return
+
+            const now = performance.now()
+            const deltaSec = (now - lastUpdate) / 1000
+
+            if (listenTo.loadFallingSpeed) loadPositionPx += get(loadFallingSpeedPx) * deltaSec
+            if (listenTo.disksRotationSpeed) disksRotation += get(disksRotationSpeed) * deltaSec
+            if (listenTo.fallingTime) loadFallingTime += deltaSec
+            if (listenTo.disksRotationsDone) disksRotationsDone += get(disksRotationSpeed) * deltaSec
+
+            lastUpdate = now
+
+            requestAnimationFrame(loop)
+        })
 
         await Promise.all([
             loadFallingSpeedPx.set(loadEndSpeedPx, { duration: t * 1000 }),
             disksRotationSpeed.set(circlesEndRotationSpeed, { duration: t * 1000 }),
-            fallingTimePassed.set(t, { duration: t * 1000 })
         ])
 
-        loadFallingSpeedPx.set(0, { duration: 0 })
+
+        listenTo.fallingTime = false
+        listenTo.loadFallingSpeed = false
+        listenTo.disksRotationsDone = true
 
         const timeOfCirclesRotating = 2 * n2 / circlesEndRotationSpeed
 
         await Promise.all([
             disksRotationSpeed.set(0, { duration: timeOfCirclesRotating * 1000 }),
-            disksRotationsDone.set(n2, { duration: timeOfCirclesRotating * 1000 })
         ])
+
+        runRaf = false
 
         state = 'fall-done'
     }
@@ -104,11 +115,13 @@
     const onClickNew = () => {
         loadPositionPx = loadBeginFallTopPx
         disksRotation = 0
+        loadFallingTime = 0
+        disksRotationsDone = 0
 
-        loadFallingSpeedPx.set(0, { duration: 0 })
+        /*loadFallingSpeedPx.set(0, { duration: 0 })
         disksRotationSpeed.set(0, { duration: 0 })
         fallingTimePassed.set(0, { duration: 0 })
-        disksRotationsDone.set(0, { duration: 0 })
+        disksRotationsDone*/
 
         state = 'idle'
     }
@@ -139,10 +152,10 @@
         <div class="row"><button disabled={state !== 'fall-done'} on:click|preventDefault|stopPropagation={onClickNew}>Новый эксперимент</button></div>
         {#if state === 'falling' || state === 'fall-done'}
             <div class="row">
-                <span>Время падения: {$fallingTimePassed.toFixed(2)}сек.</span>
+                <span>Время падения: {loadFallingTime.toFixed(1)}сек.</span>
             </div>
             <div class="row">
-                <span>Сделано оборотов: {$disksRotationsDone.toFixed(1)}</span>
+                <span>Сделано оборотов: {disksRotationDoneDisplayed.toFixed(2)}</span>
             </div>
         {/if}
     </div>
