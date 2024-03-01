@@ -46,6 +46,12 @@
         }
     }
 
+    let threadTopPx: number = bigDiskDiameterPx / 2
+    let threadLeftPx: number
+    let threadLengthPx: number
+    $: threadLeftPx = bigDiskDiameterPx / 2 + smallDiskDiameterPx / 2
+    $: threadLengthPx = loadPositionPx - bigDiskDiameterPx / 2
+
     let disksRotation = 0
     const disksRotationSpeed = tweened(0)
 
@@ -73,13 +79,6 @@
     const onClickStart = async () => {
         state = 'falling'
 
-        loadPositionPx = loadBeginFallTopPx
-        disksRotation = 0
-        loadFallingSpeedPx.set(0, { duration: 0 })
-        disksRotationSpeed.set(0, { duration: 0 })
-        fallingTimePassed.set(0, { duration: 0 })
-        disksRotationsDone.set(0, { duration: 0 })
-
         const loadEndSpeedPx = 2 * (loadEndFallTopPx - loadBeginFallTopPx) / t
 
         const circlesEndRotationSpeed = 2 * n1 / t
@@ -103,7 +102,13 @@
     }
 
     const onClickNew = () => {
+        loadPositionPx = loadBeginFallTopPx
+        disksRotation = 0
 
+        loadFallingSpeedPx.set(0, { duration: 0 })
+        disksRotationSpeed.set(0, { duration: 0 })
+        fallingTimePassed.set(0, { duration: 0 })
+        disksRotationsDone.set(0, { duration: 0 })
 
         state = 'idle'
     }
@@ -117,14 +122,28 @@
 
 <div class="app" style="width: {width}px; height: {height}px; --scale: {$scale};">
     <div class="toolbar">
-        <input bind:value={m} disabled={state !== 'idle'} type="number" min={mRange[0]} max={mRange[1]} step=".1" placeholder="Масса груза(г)...">
-        <input bind:value={d} disabled={state !== 'idle'} type="number" min={dRange[0]} max={dRange[1]} step=".01" placeholder="Диаметр шкива(м)...">
-        <input bind:value={n1} disabled={state !== 'idle'} type="number" min="3" max="4" step="1" placeholder="Количество оборотов...">
-        <button disabled={state !== 'idle'} on:click|preventDefault|stopPropagation={onClickStart}>Начать эксперимент</button>
-        <button disabled={state !== 'fall-done'} on:click|preventDefault|stopPropagation={onClickNew}>Новый эксперимент</button>
+        <div class="row">
+            <span>Масса груза (кг.)</span>
+            <input bind:value={m} disabled={state !== 'idle'} type="number" min={mRange[0]} max={mRange[1]} step=".1">
+        </div>
+        <div class="row">
+            <span>Диаметр шкива(м)</span>
+            <input bind:value={d} disabled={state !== 'idle'} type="number" min={dRange[0]} max={dRange[1]} step=".01">
+        </div>
+        <div class="row">
+            <span>Количество оборотов</span>
+            <input bind:value={n1} disabled={state !== 'idle'} type="number" min="3" max="4" step="1">
+        </div>
+
+        <div class="row"><button disabled={state !== 'idle'} on:click|preventDefault|stopPropagation={onClickStart}>Начать эксперимент</button></div>
+        <div class="row"><button disabled={state !== 'fall-done'} on:click|preventDefault|stopPropagation={onClickNew}>Новый эксперимент</button></div>
         {#if state === 'falling' || state === 'fall-done'}
-            <span>Время падения груза: {$fallingTimePassed.toFixed(2)}сек.</span>
-            <span>Сделано оборотов: {$disksRotationsDone.toFixed(1)}</span>
+            <div class="row">
+                <span>Время падения: {$fallingTimePassed.toFixed(2)}сек.</span>
+            </div>
+            <div class="row">
+                <span>Сделано оборотов: {$disksRotationsDone.toFixed(1)}</span>
+            </div>
         {/if}
     </div>
 
@@ -135,6 +154,7 @@
              style="width: {smallDiskDiameterPx}px; top: {bigDiskDiameterPx / 2 - smallDiskDiameterPx / 2}px; left: {bigDiskDiameterPx / 2 - smallDiskDiameterPx / 2}px; transform: rotateZ({disksRotation * 360}deg);"></div>
         <div class="load"
              style="width: {loadDiameterPx}px; height: {loadDiameterPx}px; left: {(bigDiskDiameterPx + smallDiskDiameterPx - loadDiameterPx) / 2}px; top: {loadPositionPx}px;"></div>
+        <div class="thread" style="height: {threadLengthPx}px; top: {threadTopPx}px; left: {threadLeftPx}px"></div>
     </div>
 </div>
 
@@ -155,10 +175,10 @@
         top: 50%;
         transform: translateY(-50%);
 
-        width: 200px;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
+        .row {
+            display: flex;
+            justify-content: space-between;
+        }
     }
 
     .physics-container {
@@ -197,6 +217,15 @@
             background-size: contain;
             background-repeat: no-repeat;
             border: 2px solid blue;
+        }
+
+        .thread {
+            position: absolute;
+
+            background-color: black;
+            width: 1px;
+            height: 100px;
+            left: 300px;
         }
     }
 </style>
