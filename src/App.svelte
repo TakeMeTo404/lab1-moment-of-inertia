@@ -1,7 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte'
     import { tweened } from 'svelte/motion'
-    import { readable, writable, get, derived } from 'svelte/store'
     import { generateN2, generateT } from './calculations'
     import { mRange, dRange, dRangePx } from './const'
     import { width, height, scale } from './sizes'
@@ -60,54 +58,40 @@
     const onClickStart = async () => {
         state = 'falling'
 
-        const loadEndSpeedPx = 2 * (loadEndFallTopPx - loadBeginFallTopPx) / t
-        const circlesEndRotationSpeed = 2 * n1 / t
+        const t1Tweened = tweened(0)
 
-        const loadFallingSpeedPx = tweened(0)
-        const disksRotationSpeed = tweened(0)
+        let unsubscribes = [
+            t1Tweened.subscribe(t1 => loadFallingTime = t1),
+            t1Tweened.subscribe(t1 => {
+                const H = loadEndFallTopPx - loadBeginFallTopPx
+                loadPositionPx = loadBeginFallTopPx + H * t1 * t1 / (t * t)
+            }),
+            t1Tweened.subscribe(t1 => {
+                disksRotation = n1 * t1 * t1 / (t * t)
+            })
+        ]
 
-        let runRaf = true
-        let listenTo = {
-            loadFallingSpeed: true,
-            disksRotationSpeed: true,
-            fallingTime: true,
-            disksRotationsDone: false
-        }
+        await t1Tweened.set(t, { duration: t * 1000 })
+        unsubscribes.forEach(u => u())
 
-        let lastUpdate = performance.now()
-        requestAnimationFrame(function loop() {
-            if (!runRaf) return
+        const t2Tweened = tweened(0)
+        const t2 = t * n2 / n1
 
-            const now = performance.now()
-            const deltaSec = (now - lastUpdate) / 1000
+        unsubscribes = [
+            t2Tweened.subscribe(t2 => {
+                disksRotation = n1
+                    + 2 * n1 * t2 / t
+                    - (n1 ** 2 * t2 ** 2) / (t ** 2 * n2)
+            }),
+            t2Tweened.subscribe(t2 => {
+                disksRotationsDone =
+                    2 * n1 * t2 / t
+                    - (n1 ** 2 * t2 ** 2) / (t ** 2 * n2)
+            })
+        ]
 
-            if (listenTo.loadFallingSpeed) loadPositionPx += get(loadFallingSpeedPx) * deltaSec
-            if (listenTo.disksRotationSpeed) disksRotation += get(disksRotationSpeed) * deltaSec
-            if (listenTo.fallingTime) loadFallingTime += deltaSec
-            if (listenTo.disksRotationsDone) disksRotationsDone += get(disksRotationSpeed) * deltaSec
-
-            lastUpdate = now
-
-            requestAnimationFrame(loop)
-        })
-
-        await Promise.all([
-            loadFallingSpeedPx.set(loadEndSpeedPx, { duration: t * 1000 }),
-            disksRotationSpeed.set(circlesEndRotationSpeed, { duration: t * 1000 }),
-        ])
-
-
-        listenTo.fallingTime = false
-        listenTo.loadFallingSpeed = false
-        listenTo.disksRotationsDone = true
-
-        const timeOfCirclesRotating = 2 * n2 / circlesEndRotationSpeed
-
-        await Promise.all([
-            disksRotationSpeed.set(0, { duration: timeOfCirclesRotating * 1000 }),
-        ])
-
-        runRaf = false
+        await t2Tweened.set(t2, { duration: t2 * 1000 })
+        unsubscribes.forEach(u => u())
 
         state = 'fall-done'
     }
@@ -117,11 +101,6 @@
         disksRotation = 0
         loadFallingTime = 0
         disksRotationsDone = 0
-
-        /*loadFallingSpeedPx.set(0, { duration: 0 })
-        disksRotationSpeed.set(0, { duration: 0 })
-        fallingTimePassed.set(0, { duration: 0 })
-        disksRotationsDone*/
 
         state = 'idle'
     }
@@ -148,8 +127,16 @@
             <input bind:value={n1} disabled={state !== 'idle'} type="number" min="3" max="4" step="1">
         </div>
 
-        <div class="row"><button disabled={state !== 'idle'} on:click|preventDefault|stopPropagation={onClickStart}>Начать эксперимент</button></div>
-        <div class="row"><button disabled={state !== 'fall-done'} on:click|preventDefault|stopPropagation={onClickNew}>Новый эксперимент</button></div>
+        <div class="row">
+            <button disabled={state !== 'idle'} on:click|preventDefault|stopPropagation={onClickStart}>
+                Начать эксперимент
+            </button>
+        </div>
+        <div class="row">
+            <button disabled={state !== 'fall-done'} on:click|preventDefault|stopPropagation={onClickNew}>
+                Новый эксперимент
+            </button>
+        </div>
         {#if state === 'falling' || state === 'fall-done'}
             <div class="row">
                 <span>Время падения: {loadFallingTime.toFixed(1)}сек.</span>
@@ -178,8 +165,9 @@
         left: 50%;
         transform: translateX(-50%) translateY(-50%) scale(var(--scale));
         border: 1px solid black;
-        //background-image: url("./assets/bg.jpeg");
-        background-size: cover;
+        background-image: url("./assets/bg.jpg");
+        background-size: contain;
+        background-repeat: no-repeat;
     }
 
     .toolbar {
@@ -196,10 +184,8 @@
 
     .physics-container {
         position: absolute;
-        left: 450px;
-        bottom: 50px;
-
-        border: 2px solid red;
+        left: 650px;
+        bottom: 130px;
 
         .disk {
             position: absolute;
@@ -229,7 +215,6 @@
             background-position: center center;
             background-size: contain;
             background-repeat: no-repeat;
-            border: 2px solid blue;
         }
 
         .thread {
