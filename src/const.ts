@@ -1,7 +1,6 @@
+export const containerHeightPx = 700
+export const flywheelDiameterPx = 200
+export const loadDiameterPx = 80
 export const mRange = [ .3, 1 ]
 export const dRange = [ .05, .1 ]
 export const dRangePx = [ 30, 50 ]
-export const tRange = [ 6, 10 ]
-// export const tRange = [ 2, 3 ]
-export const n2Range = [ 45, 90 ]
-// export const n2Range = [ 5, 10 ]
