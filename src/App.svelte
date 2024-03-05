@@ -7,61 +7,12 @@
 
     let state: State = 'idle'
 
-    /*let m = .6
-    let d = .065
-    let n1 = 3
-    const I = .204
-    const g = 9.81
-
-    let t: number
-    let n2: number
-    $: {
-        console.group()
-        console.log(`m = ${m.toFixed(2)}кг.`)
-        console.log(`d = ${d.toFixed(2)}м.`)
-        console.log(`n1 = ${n1.toFixed(1)}`)
-        console.log(`I = ${I.toFixed(2)}кг*м^2`)
-
-        /!* e = mg / (2m pi R^2 + I/R) *!/
-        const e = m * g / (2 * m * Math.PI * (d * d / 4) + 2 * I / d)
-        const t2 = Math.sqrt(2 * n1 / e)
-        // console.log(`t2 = ${t2.toFixed(2)}сек.`)
-
-        const a =
-            m * g /
-            (m + (
-                I / (2 * Math.PI * (d * d / 4))
-            ))
-
-        const H = Math.PI * d * n1
-        console.log(`H = ${H}м.`)
-
-        t = Math.sqrt(2 * H / a)
-        console.log(`t = ${t.toFixed(2)}сек.`)
-        n2 = n1 /
-            (
-                (m * d * d * t * t * g) / (8 * H * I)
-                - 1
-            )
-
-        const checkI = m * d**2 * t**2 * g / (8 * H * (1 + n1/n2))
-        const checkI2 = m * d * t**2 * g * n2 / (8 * n1 * Math.PI * (n1 + n2))
-        // console.log(`I=${I.toFixed(2)}, checkI=${checkI.toFixed(2)},, checkI2=${checkI2.toFixed(2)}`)
-
-        console.log(`n2 = ${n2.toFixed(1)}`)
-        console.groupEnd()
-    }*/
-
-    /*let ff: number = 0
-    $: console.log(ff, ff, ff, ff)*/
-
-    let m = 0.6
-    let d = 0.065
+    let m = mRange[0]
+    let d = (dRange[0] + dRange[1]) / 2
     let n1 = 3
     const I = 0.204
     const g = 9.81
     const al = .07
-
 
     let t: number
     let n2: number
@@ -129,7 +80,6 @@
          console.log(`I = ${IFinal}`)
          console.groupEnd()*/
     }
-
 
     let pulleyDiameterPx = dRangePx[0]
     $: {
@@ -214,16 +164,29 @@
 
         state = 'idle'
     }
-    /*
-        $: console.log(`Масса груза(г) = ${m}`)
-        $: console.log(`Диаметр шкива(м) = ${d}`)
-        $: console.log(`Количество оборотов n1 = ${n1}`)
-        $: console.log(`Время (с.) = ${t}`)
-        $: console.log(`Количество оборотов n2 = ${n2}`)*/
+
+    const onInputM = (e: Event & { currentTarget: HTMLInputElement, target: HTMLInputElement }) => {
+        const value = parseFloat(e.target.value)
+        if (!isNaN(value)) {
+            m = value
+        }
+    }
+    const onInputD = (e: InputEvent & { currentTarget: HTMLInputElement, target: HTMLInputElement }) => {
+        const value = parseFloat(e.target.value)
+        if (!isNaN(value)) {
+            d = value
+        }
+    }
+    const onInputN1 = (e: InputEvent & { currentTarget: HTMLInputElement, target: HTMLInputElement }) => {
+        const value = parseFloat(e.target.value)
+        if (!isNaN(value)) {
+            n1 = value
+        }
+    }
 </script>
 
 <div class="app" style="width: {width}px; height: {height}px; --scale: {$scale};">
-    <div class="ui-holder">
+    <div class="ui-holder to-left">
         <div class="ui">
             <div class="experiment-counter">
                 Эксперимент №1
@@ -231,81 +194,52 @@
             <section class="input">
                 <div class="section-element">
                     <div class="flex">
-                        <span>Масса груза (кг)</span>
+                        <span>m – Масса груза (кг)</span>
+                        <input type="number" max={mRange[0]} min={mRange[1]} step=".1" placeholder="Введите m..." on:input={onInputM} />
                     </div>
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
                     <div class="flex">
-                        <span>Диаметр шкива (м)</span>
+                        <span>d – Диаметр шкива (м)</span>
+                        <input type="number" max={dRange[0]} min={dRange[1]} step=".05" placeholder="Введите d..." on:input={onInputD} />
                     </div>
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
                     <div class="flex">
-                        <span>Количество оборотов</span>
+                        <span>n1 – Количество оборотов</span>
+                        <input type="number" max="4" min="3" step="1" placeholder="Введите n1..." on:input={onInputN1} />
                     </div>
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
-                    <button>Отпустить груз</button>
+                    <button on:click={onClickStart}>Отпустить груз</button>
                 </div>
             </section>
             <section class="output">
                 <div class="section-element">
                     <div class="flex">
-                        <span>Время падения груза (с)</span>
+                        <span>t – Время падения груза (с)</span>
+                        <span>{ loadFallingTime.toFixed(1) }</span>
                     </div>
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
                     <div class="flex">
-                        <span>Количество оборотов</span>
+                        <span>n2 – Обороты после падения груза</span>
+                        <span>{ disksRotationDoneDisplayed.toFixed(2) }</span>
                     </div>
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
-                    <button class="blue">Поднять груз</button>
+                    <button class="blue" on:click={onClickNew}>Поднять груз</button>
                 </div>
             </section>
             <section>
                 <div style="height: 2rem;"></div>
             </section>
         </div>
-    </div>
-
-    <div class="toolbar">
-        <div class="row">
-            <span>Масса груза (кг.)</span>
-            <input bind:value={m} disabled={state !== 'idle'} type="number" min={mRange[0]} max={mRange[1]} step=".1">
-        </div>
-        <div class="row">
-            <span>Диаметр шкива(м)</span>
-            <input bind:value={d} disabled={state !== 'idle'} type="number" min={dRange[0]} max={dRange[1]} step=".01">
-        </div>
-        <div class="row">
-            <span>Количество оборотов</span>
-            <input bind:value={n1} disabled={state !== 'idle'} type="number" min="3" max="4" step="1">
-        </div>
-
-        <div class="row">
-            <button disabled={state !== 'idle'} on:click|preventDefault|stopPropagation={onClickStart}>
-                Начать эксперимент
-            </button>
-        </div>
-        <div class="row">
-            <button disabled={state !== 'fall-done'} on:click|preventDefault|stopPropagation={onClickNew}>
-                Новый эксперимент
-            </button>
-        </div>
-        {#if state === 'falling' || state === 'fall-done'}
-            <div class="row">
-                <span>Время падения: {loadFallingTime.toFixed(1)}сек.</span>
-            </div>
-            <div class="row">
-                <span>Сделано оборотов: {disksRotationDoneDisplayed.toFixed(2)}</span>
-            </div>
-        {/if}
     </div>
 
     <div class="physics-container" style="height: {containerHeightPx}px; width: {flywheelDiameterPx}px;">
@@ -333,11 +267,18 @@
 
     .ui-holder {
         position: fixed;
-        left: 50%;
         top: 50%;
         translate: -50% -50%;
         width: fit-content;
         height: fit-content;
+
+        &.centered {
+            left: 50%;
+        }
+
+        &.to-left {
+            left: 33%;
+        }
 
         .ui {
             background: hsla(12 0% 60% / 30%);
@@ -374,11 +315,44 @@
                     .flex {
                         display: flex;
                         align-items: baseline;
+                        justify-content: space-between;
 
                         span {
                             color: white;
                             font-size: 1rem;
                             background-color: transparent;
+                        }
+
+                        input {
+                            border:0;
+                            outline:0;
+                            -webkit-appearance: none;
+                            background: transparent;
+                            font-size: 16px;
+                            text-align: right;
+                            width: 100px;
+                            color: white;
+                            font-style: italic;
+
+                            &::placeholder {
+                                color: hsla(12 0% 60% / 20%);
+                                font-style: normal;
+                            }
+
+                            &:focus, &:valid {
+                                border: none;
+                                outline:none!important;
+                            }
+
+                            &::-webkit-outer-spin-button,
+                            &::-webkit-inner-spin-button {
+                                -webkit-appearance: none;
+                                margin: 0;
+                            }
+
+                            &[type=number] {
+                                -moz-appearance: textfield;
+                            }
                         }
                     }
 
@@ -415,27 +389,15 @@
                 }
 
                 .divider {
-                    height: 2px;
+                    height: 1px;
                 }
             }
         }
     }
 
-    .toolbar {
-        position: absolute;
-        left: 10%;
-        top: 50%;
-        transform: translateY(-50%);
-
-        .row {
-            display: flex;
-            justify-content: space-between;
-        }
-    }
-
     .physics-container {
         position: absolute;
-        left: 1150px;
+        left: 950px;
         bottom: 130px;
 
         .disk {
