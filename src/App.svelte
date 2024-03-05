@@ -223,6 +223,57 @@
 </script>
 
 <div class="app" style="width: {width}px; height: {height}px; --scale: {$scale};">
+    <div class="ui-holder">
+        <div class="ui">
+            <div class="experiment-counter">
+                Эксперимент №1
+            </div>
+            <section class="input">
+                <div class="section-element">
+                    <div class="flex">
+                        <span>Масса груза (кг)</span>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="section-element">
+                    <div class="flex">
+                        <span>Диаметр шкива (м)</span>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="section-element">
+                    <div class="flex">
+                        <span>Количество оборотов</span>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="section-element">
+                    <button>Отпустить груз</button>
+                </div>
+            </section>
+            <section class="output">
+                <div class="section-element">
+                    <div class="flex">
+                        <span>Время падения груза (с)</span>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="section-element">
+                    <div class="flex">
+                        <span>Количество оборотов</span>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="section-element">
+                    <button class="blue">Поднять груз</button>
+                </div>
+            </section>
+            <section>
+                <div style="height: 2rem;"></div>
+            </section>
+        </div>
+    </div>
+
     <div class="toolbar">
         <div class="row">
             <span>Масса груза (кг.)</span>
@@ -280,6 +331,96 @@
         background-repeat: no-repeat;
     }
 
+    .ui-holder {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        translate: -50% -50%;
+        width: fit-content;
+        height: fit-content;
+
+        .ui {
+            background: hsla(12 0% 60% / 30%);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+
+            width: 400px;
+            min-height: 500px;
+
+            .experiment-counter {
+                padding-top: 1.5rem;
+                font-size: 1.5rem;
+                color: white;
+                text-align: center;
+                font-weight: bold;
+            }
+
+            section {
+                padding: 0 1rem;
+
+                &.input {
+                    padding-top: 2rem;
+                }
+
+                &.output {
+                    padding-top: 2rem;
+                }
+
+                .section-element {
+                    backdrop-filter: brightness(10%);
+                    background-clip: text;
+                    padding: 1rem;
+
+                    .flex {
+                        display: flex;
+                        align-items: baseline;
+
+                        span {
+                            color: white;
+                            font-size: 1rem;
+                            background-color: transparent;
+                        }
+                    }
+
+                    button {
+                        border: none;
+                        text-align: center;
+                        width: 100%;
+                        display: block;
+
+                        font-size: 1rem;
+                        font-weight: bold;
+                        color: white;
+
+                        border-radius: 2rem;
+                        padding: .5rem;
+                        cursor: pointer;
+
+                        background: hsla(12 0% 60% / 20%);
+
+                        &.blue {
+                            background: transparent;
+                            color: #3070B9;
+                        }
+                    }
+
+                    &:first-child {
+                        border-top-left-radius: 1rem;
+                        border-top-right-radius: 1rem;
+                    }
+                    &:last-child {
+                        border-bottom-left-radius: 1rem;
+                        border-bottom-right-radius: 1rem;
+                    }
+                }
+
+                .divider {
+                    height: 2px;
+                }
+            }
+        }
+    }
+
     .toolbar {
         position: absolute;
         left: 10%;
@@ -294,7 +435,7 @@
 
     .physics-container {
         position: absolute;
-        left: 650px;
+        left: 1150px;
         bottom: 130px;
 
         .disk {
