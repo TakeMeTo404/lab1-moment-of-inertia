@@ -155,7 +155,7 @@
     let threadTopPx: number = flywheelDiameterPx / 2
     let threadLeftPx: number
     let threadLengthPx: number
-    $: threadLeftPx = flywheelDiameterPx / 2 + pulleyDiameterPx / 2
+    $: threadLeftPx = flywheelDiameterPx / 2 + pulleyDiameterPx / 2 - 2
     $: threadLengthPx = loadPositionPx - flywheelDiameterPx / 2
 
     let disksRotation = 0
@@ -258,12 +258,12 @@
     </div>
 
     <div class="physics-container" style="height: {containerHeightPx}px; width: {flywheelDiameterPx}px;">
-        <div class="big-disk disk"
+        <div class="flywheel disk"
              style="width: {flywheelDiameterPx}px; transform: rotateZ({disksRotation * 360}deg);"></div>
-        <div class="small-disk disk"
+        <div class="pulley disk"
              style="width: {pulleyDiameterPx}px; top: {flywheelDiameterPx / 2 - pulleyDiameterPx / 2}px; left: {flywheelDiameterPx / 2 - pulleyDiameterPx / 2}px; transform: rotateZ({disksRotation * 360}deg);"></div>
         <div class="load"
-             style="width: {loadDiameterPx}px; height: {loadDiameterPx}px; left: {(flywheelDiameterPx + pulleyDiameterPx - loadDiameterPx) / 2}px; top: {loadPositionPx}px;"></div>
+             style="width: {loadDiameterPx}px; height: {loadDiameterPx}px; left: {threadLeftPx - loadDiameterPx / 2}px; top: {loadPositionPx}px;"></div>
         <div class="thread" style="height: {threadLengthPx}px; top: {threadTopPx}px; left: {threadLeftPx}px"></div>
     </div>
 </div>
@@ -307,14 +307,14 @@
             background-repeat: no-repeat;
         }
 
-        .big-disk {
+        .flywheel {
             left: 0;
             top: 0;
-            background-image: url("./assets/big-disk.png");
+            background-image: url("./assets/flywheel.png");
         }
 
-        .small-disk {
-            background-image: url("./assets/small-disk.png");
+        .pulley {
+            background-image: url("./assets/pulley.png");
         }
 
         .load {
