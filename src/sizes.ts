@@ -1,14 +1,25 @@
 import { readable } from 'svelte/store'
 
-const calculateScale = () => {
-    return Math.min(
-        window.innerWidth / width,
-        window.innerHeight / height
-    )
-}
-
 export const width = 1600
 export const height = 900
+
+const minFraction = 1000 / height
+const maxFraction = width / 780
+
+
+const calculateScale = () => {
+    const widthProportion = window.innerWidth / width
+    const heightProportion = window.innerHeight / height
+
+    const windowProportion = window.innerWidth / window.innerHeight
+
+    if (windowProportion >= minFraction && windowProportion <= maxFraction) {
+        return Math.max(widthProportion, heightProportion)
+    }
+
+    return Math.min(widthProportion, heightProportion)
+}
+
 export const scale = readable(calculateScale(), (set) => {
     const listener = () => set(calculateScale())
 

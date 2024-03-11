@@ -10,14 +10,10 @@
         flywheelDiameterPx,
         variantToI,
         loadDiameterRangePx,
-        tRange,
         IRange,
         n2Range
     } from './const'
     import { width, height, scale } from './sizes'
-
-    let appState: 'idle' | 'targeting' | 'falling' | 'fall-done' = 'idle'
-    let error: string = ''
 
     let variantNumber: number | null
     let I: number
@@ -43,7 +39,7 @@
                 m: (m - mRange[0]) / (mRange[1] - mRange[0]),
                 d: 1 - (d - dRange[0]) / (dRange[1] - dRange[0]),
                 n1: (n1 - n1Range[0]) / (n1Range[1] - n1Range[0]),
-                I: (I - n2Range[0]) / (n2Range[1] - n2Range[0])
+                I: (I - IRange[0]) / (IRange[1] - IRange[0])
             } as const
 
             const coefficients = {
@@ -60,10 +56,7 @@
                 Object.values(coefficients).reduce((acc, c) => acc + c, 0)
 
             // 1 + n1/n2 = m d^2 t^2 g / 8HI
-            // (1 + n1/n2) * 8Hi / (m * d^2 * g) = t^2
             // t = sqrt( (1 + n1/n2) * 8I * PI * d * n1 / (m * d^2 * g) )
-            // t = sqrt( (1 + 3 / n2) * 8 * 0.2 * 0.06 * 3 / (0.6 * 0.06 * 0.06 * 9.81) )
-            // t = sqrt( (1 + 3 / n2) * 13.59 )
 
             n2 = n2Range[0] + fr * fr * (n2Range[1] - n2Range[0])
 
@@ -71,27 +64,25 @@
 
             t = Math.sqrt((1 + n1 / n2) * 8 * I * H / (m * d * d * 9.81))
 
-            // t = tRange[0] + fr * (tRange[1] - tRange[0])
             console.log(`n2 = ${n2.toFixed(2)}`)
             console.log(`t = ${t.toFixed(2)}сек.`)
-            /*
-
-                        // 1 + n1 / n2 = m d^2 t^2 g / 8HI
-                        // n1 / n2 = (m d^2 t^2 g / 8HI) - 1
-                        // n2 = n1 / ((m d^2 t^2 g / 8HI) - 1)
-            */
 
             // n2 = n1 / ((m * d * d * t * t * 9.81 / (8 * H * I)) - 1)
-            // n2 = 20
-
 
             const studentI = m * (d ** 2) * (t ** 2) * 9.81 / (8 * H * (1 + n1 / n2))
             console.log(`studentI = ${studentI.toFixed(3)}кг*м^2`)
 
             console.groupEnd()
-
         }
     }
+
+    let appState: 'idle' | 'targeting' | 'falling' | 'fall-done' = 'idle'
+    let error: string = ''
+
+    let canInput: boolean = false, canClickStart: boolean = false, canClickRaise: boolean = false
+    $: canInput = (appState === 'idle' || appState === 'targeting')
+    $: canClickStart = (appState === 'idle' || appState === 'targeting')
+    $: canClickRaise = appState === 'fall-done'
 
     type PhysicsState = {
         pulleyDiameterPx: number
@@ -253,31 +244,23 @@
         appState = 'fall-done'
     }
 
-    /*$: {
-        if (!n2 || !n1 || !m || !t || !I || !d) {
-            console.group('whaattttttt')
-            console.log(n2)
-            console.log(n1)
-            console.log(m)
-            console.log(t)
-            console.log(I)
-            console.log(d)
-            console.groupEnd()
-        }
-    }*/
+    const onClickRaise = async () => {
+        if (!canClickRaise) return
 
-    const onClickNew = async () => {
         appState = 'targeting'
 
         loadFallingTime = 0
         disksRotationsDone = 0
 
+        await physicsStateTweened.set({ loadPositionPx: currentLoadPositionPx, loadDiameterPx: currentLoadDiameterPx, pulleyDiameterPx: currentPulleyDiameterPx, systemRotation: (n2 - n1) % 1 }, { duration: 0 })
         await updatePhysicsTarget()
 
         appState = 'idle'
     }
 
     const onInputVariantNumber = (e: any) => {
+        if (!canInput) return
+
         const value = e.target.value as string
 
         if (!value) {
@@ -298,6 +281,8 @@
     }
 
     const onInputM = (e: any) => {
+        if (!canInput) return
+
         const value = e.target.value as string
 
         if (!value) {
@@ -320,6 +305,8 @@
     }
 
     const onInputD = (e: any) => {
+        if (!canInput) return
+
         const value = e.target.value as string
 
         if (!value) {
@@ -342,6 +329,8 @@
     }
 
     const onInputN1 = (e: any) => {
+        if (!canInput) return
+
         const value = e.target.value as string
 
         if (!value) {
@@ -362,7 +351,6 @@
 
         updatePhysicsTarget()
     }
-
 </script>
 
 <div class="app" style="width: {width}px; height: {height}px; --scale: {$scale};">
@@ -370,13 +358,12 @@
         <div class="ui">
             <h3 class="experiment-counter">
                 Лабораторная работа №9
-                <!--                Лабораторная работа №{ obj.aa }-->
             </h3>
             <section class="variant">
                 <div class="section-element">
                     <div class="flex">
                         <span>Номер варианта</span>
-                        <input type="number" max={30} min={1} placeholder="От 1 до 30"
+                        <input disabled={!canInput} type="number" max={30} min={1} placeholder="от 1 до 30"
                                on:input|preventDefault={onInputVariantNumber}/>
                     </div>
                 </div>
@@ -385,7 +372,7 @@
                 <div class="section-element">
                     <div class="flex">
                         <span>m – Масса груза (кг)</span>
-                        <input type="number" max={mRange[0]} min={mRange[1]} step=".1" placeholder="Введите m..."
+                        <input disabled={!canInput} type="number" max={mRange[0]} min={mRange[1]} step=".1" placeholder={`от ${mRange[0]} до ${mRange[1]}`}
                                on:input={onInputM}/>
                     </div>
                 </div>
@@ -393,7 +380,7 @@
                 <div class="section-element">
                     <div class="flex">
                         <span>d – Диаметр шкива (м)</span>
-                        <input type="number" max={dRange[0]} min={dRange[1]} step=".05" placeholder="Введите d..."
+                        <input disabled={!canInput} type="number" max={dRange[0]} min={dRange[1]} step=".05" placeholder={`от ${dRange[0]} до ${dRange[1]}`}
                                on:input={onInputD}/>
                     </div>
                 </div>
@@ -401,12 +388,15 @@
                 <div class="section-element">
                     <div class="flex">
                         <span>n1 – Количество оборотов</span>
-                        <input type="number" max="4" min="3" step="1" placeholder="Введите n1..." on:input={onInputN1}/>
+                        <input disabled={!canInput} type="number" max="4" min="3" step="1" placeholder={`от ${n1Range[0]} до ${n1Range[1]}`} on:input={onInputN1}/>
                     </div>
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
-                    <button on:click={onClickStart}>Отпустить груз</button>
+                    <button disabled={!canClickStart} on:click={onClickStart}>Отпустить груз</button>
+                </div>
+                <div class="section-element" style="padding-top: 0; height: 3rem;">
+                    <div class="error-indicator">{error}</div>
                 </div>
             </section>
             <section class="output">
@@ -425,14 +415,8 @@
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
-                    <button class="blue" on:click={onClickNew}>Поднять груз</button>
+                    <button disabled={!canClickRaise} class="blue" on:click={onClickRaise}>Поднять груз</button>
                 </div>
-            </section>
-            <section style="height: 3.5rem;">
-                {#if error}
-                    <div class="error-indicator">{error}</div>
-                {/if}
-                <!--                <div class="error-indicator">Масса должна быть в диапазоне [0.3; 1.0]</div>-->
             </section>
         </div>
     </div>
@@ -441,7 +425,7 @@
         <div class="flywheel disk"
              style="width: {flywheelDiameterPx}px; transform: rotateZ({currentSystemRotation * 360}deg);"></div>
         <div class="pulley disk"
-             style="width: {currentPulleyDiameterPx}px; top: {flywheelDiameterPx / 2 - currentPulleyDiameterPx / 2}px; left: {flywheelDiameterPx / 2 - currentPulleyDiameterPx / 2}px; transform: rotateZ({currentSystemRotation}deg);"></div>
+             style="width: {currentPulleyDiameterPx}px; top: {flywheelDiameterPx / 2 - currentPulleyDiameterPx / 2}px; left: {flywheelDiameterPx / 2 - currentPulleyDiameterPx / 2}px; transform: rotateZ({currentSystemRotation * 360}deg);"></div>
         <div class="load"
              style="width: {currentLoadDiameterPx}px; height: {currentLoadDiameterPx}px; left: {threadLeftPx - currentLoadDiameterPx / 2}px; top: {currentLoadPositionPx}px;"></div>
         <div class="thread" style="height: {threadLengthPx}px; top: {threadTopPx}px; left: {threadLeftPx}px"></div>
@@ -513,6 +497,7 @@
 
                 &.output {
                     padding-top: 1.5rem;
+                    padding-bottom: 1.5rem;
                 }
 
                 .section-element {
@@ -604,8 +589,6 @@
                 }
 
                 .error-indicator {
-                    padding-top: 1rem;
-                    padding-bottom: 1rem;
                     font-size: 16px;
                     color: #e72416;
                 }
