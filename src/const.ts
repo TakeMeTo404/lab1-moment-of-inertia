@@ -2,6 +2,8 @@ export const containerHeightPx = 700
 export const flywheelDiameterPx = 200
 export const mRange = [ .3, 1 ]
 export const dRange = [ .05, .1 ]
+export const tRange = [ 6, 10 ]
+export const n2Range = [ 30, 80 ]
 export const dRangePx = [ 30, 50 ]
 export const loadDiameterRangePx = [ 50, 100 ]
 export const n1Range = [ 2, 4 ]
@@ -37,3 +39,4 @@ export const variantToI: Record<number, number> = {
     29: 1.210,
     30: 1.490
 }
+export const IRange = [ Math.min(...Object.values(variantToI)), Math.max(...Object.values(variantToI)) ]

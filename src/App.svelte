@@ -9,7 +9,10 @@
         containerHeightPx,
         flywheelDiameterPx,
         variantToI,
-        loadDiameterRangePx
+        loadDiameterRangePx,
+        tRange,
+        IRange,
+        n2Range
     } from './const'
     import { width, height, scale } from './sizes'
 
@@ -22,100 +25,73 @@
 
     let m: number | null = null
     let d: number | null = null
-    let n1: number
+    let n1: number = null as any
 
-    /*$: {
-        if (appState == 'idle' || appState === 'targeting') {
-            const mm: number = m ?? (mRange[0] + mRange[1]) / 2
-            const dd: number = d ?? (dRange[0] + dRange[1]) / 2
-            const n1n1: number = n1 ?? 0
+    let t: number = null as any
+    let n2: number = null as any
 
-            const mFr = (mm - mRange[0]) / (mRange[1] - mRange[0])
-            const dFr = (dd - dRange[0]) / (dRange[1] - dRange[0])
+    $: {
+        if (m && d && n1) {
+            console.group()
 
-            const loadDiameterPx = loadDiameterRangePx[0] + (loadDiameterRangePx[1] - loadDiameterRangePx[0]) * mFr
-            const pulleyDiameterPx = dRangePx[0] + (dRangePx[1] - dRangePx[0]) * dFr
-            const loadPositionPx = containerHeightPx - loadDiameterPx - n1n1 * pulleyDiameterPx * Math.PI
+            console.log(`m = ${m?.toFixed(2)}кг.`)
+            console.log(`d = ${d?.toFixed(3)}м.`)
+            console.log(`n1 = ${n1?.toFixed(1)}`)
+            console.log(`I = ${I?.toFixed(3)}кг*м^2`)
 
-            let targetState: PhysicsState = {
-                pulleyDiameterPx,
-                loadDiameterPx,
-                loadPositionPx,
-                systemRotation: -n1n1 - 5
-            }
+            const frs = {
+                m: (m - mRange[0]) / (mRange[1] - mRange[0]),
+                d: 1 - (d - dRange[0]) / (dRange[1] - dRange[0]),
+                n1: (n1 - n1Range[0]) / (n1Range[1] - n1Range[0]),
+                I: (I - n2Range[0]) / (n2Range[1] - n2Range[0])
+            } as const
 
-            appState = 'targeting'
-            physicsStateTweened.set(targetState, { duration: 500 })
-                .then(() => appState = 'idle')
+            const coefficients = {
+                m: 2,
+                d: 1,
+                n1: 3,
+                I: 2
+            } as const
+
+            const fr =
+                Object.entries(coefficients)
+                    .map(([ key, value ]) => value * frs[key as keyof typeof frs])
+                    .reduce((acc, c) => acc + c, 0) /
+                Object.values(coefficients).reduce((acc, c) => acc + c, 0)
+
+            // 1 + n1/n2 = m d^2 t^2 g / 8HI
+            // (1 + n1/n2) * 8Hi / (m * d^2 * g) = t^2
+            // t = sqrt( (1 + n1/n2) * 8I * PI * d * n1 / (m * d^2 * g) )
+            // t = sqrt( (1 + 3 / n2) * 8 * 0.2 * 0.06 * 3 / (0.6 * 0.06 * 0.06 * 9.81) )
+            // t = sqrt( (1 + 3 / n2) * 13.59 )
+
+            n2 = n2Range[0] + fr * fr * (n2Range[1] - n2Range[0])
+
+            const H = Math.PI * d * n1
+
+            t = Math.sqrt((1 + n1 / n2) * 8 * I * H / (m * d * d * 9.81))
+
+            // t = tRange[0] + fr * (tRange[1] - tRange[0])
+            console.log(`n2 = ${n2.toFixed(2)}`)
+            console.log(`t = ${t.toFixed(2)}сек.`)
+            /*
+
+                        // 1 + n1 / n2 = m d^2 t^2 g / 8HI
+                        // n1 / n2 = (m d^2 t^2 g / 8HI) - 1
+                        // n2 = n1 / ((m d^2 t^2 g / 8HI) - 1)
+            */
+
+            // n2 = n1 / ((m * d * d * t * t * 9.81 / (8 * H * I)) - 1)
+            // n2 = 20
+
+
+            const studentI = m * (d ** 2) * (t ** 2) * 9.81 / (8 * H * (1 + n1 / n2))
+            console.log(`studentI = ${studentI.toFixed(3)}кг*м^2`)
+
+            console.groupEnd()
+
         }
-    }*/
-
-    let t: number = 5
-    let n2: number = 10
-    /*$: {
-        console.group()
-        console.log(`m = ${m.toFixed(2)}кг.`)
-        console.log(`d = ${d.toFixed(3)}м.`)
-        console.log(`n1 = ${n1.toFixed(1)}`)
-        console.log(`I = ${I.toFixed(3)}кг*м^2`)
-        console.log(`alpha = ${al.toFixed(3)}`)
-
-        const A1 = -al * n1
-        const M = al / (2 * Math.PI)
-        console.log(`M = ${M.toFixed(3)}`)
-        const R = d / 2
-
-        const a = (m * g * R + M) / (m * R + I / R)
-
-        const H = Math.PI * d * n1
-
-        t = Math.sqrt(2 * H / a)
-
-        const w = 2 * H / (R * t)
-
-        n2 = -I * w ** 2 * n1 / (2 * A1)
-
-        // t = 6.8
-        // t = t * 1.2
-
-        // t = 8
-
-        const x = m * R * R * (g * t * t - 2 * H) / (2 * H * I)
-
-        // const x = m * R**2 * (g * t**2 - 2*H) / (2 * H * I)
-        // console.log('x= ', x)
-        // n2 = n1 / (x - 1)
-
-        /!* этот checkI получается такой же, как и I *!/
-        // const checkI = m * d**2 * t**2 * g / (8 * H * (1 + n1/n2))
-        // console.log(`I=${I.toFixed(2)}, checkI=${checkI.toFixed(2)}`)
-
-        const studentI = m * d ** 2 * t ** 2 * g / (8 * H * (1 + n1 / n2))
-
-        console.log('')
-        console.log(`t = ${t.toFixed(2)}сек.`)
-        console.log(`n2 = ${n2.toFixed(1)}`)
-        console.log('')
-        console.log(`studentI= ${studentI}`)
-        console.groupEnd()
-
-        // t = 6.4
-        // n2 = 91
-
-        /!* console.group('Подставляю')
-         console.log(`m = ${m}`)
-         console.log(`d = ${d}`)
-         console.log(`t = ${t}`)
-         console.log(`g = ${g}`)
-         console.log(`H = ${H}`)
-         console.log(`n1 = ${n1}`)
-         console.log(`n2 = ${n2}`)
-         console.groupEnd()
-         console.group('Получаю')
-         const IFinal = m * d**2 * t**2 * g / (8 * H * (1 + n1/n2))
-         console.log(`I = ${IFinal}`)
-         console.groupEnd()*!/
-    }*/
+    }
 
     type PhysicsState = {
         pulleyDiameterPx: number
@@ -150,9 +126,9 @@
     let loadFallingTime: number = 0
     let disksRotationsDone: number = 0
     let disksRotationDoneDisplayed: number
-    $: disksRotationDoneDisplayed = Math.floor(disksRotationsDone * 4) / 4
+    $: disksRotationDoneDisplayed = Math.round(disksRotationsDone * 4) / 4
 
-    function calculateTargetPhysicsState (): PhysicsState {
+    function calculateTargetPhysicsState(): PhysicsState {
         const mm: number = m ?? (mRange[0] + mRange[1]) / 2
         const dd: number = d ?? (dRange[0] + dRange[1]) / 2
         const n1n1: number = n1 ?? 0
@@ -189,26 +165,21 @@
             systemRotation: delta.systemRotation / (n1Range[1] - n1Range[0]),
             pulleyDiameterPx: delta.pulleyDiameterPx / (dRangePx[1] - dRangePx[0]),
             loadDiameterPx: delta.loadDiameterPx / (loadDiameterRangePx[1] - loadDiameterRangePx[0]),
-            loadPositionPx: delta.loadPositionPx / (loadPositionRangePx[1] - loadPositionRangePx[0]),
+            loadPositionPx: delta.loadPositionPx / (loadPositionRangePx[1] - loadPositionRangePx[0])
         }
 
         const coefficients: PhysicsState = {
             systemRotation: 1,
             pulleyDiameterPx: 1,
             loadDiameterPx: 1,
-            loadPositionPx: 1,
+            loadPositionPx: 1
         }
-
-        console.log(delta)
-        console.log(frs)
-        console.log(Object.entries(coefficients))
 
         const fr =
             Object.entries(coefficients)
-                .map(([key, value]) => value * frs[key as keyof PhysicsState])
+                .map(([ key, value ]) => value * frs[key as keyof PhysicsState])
                 .reduce((acc, c) => acc + c, 0) /
             Object.values(coefficients).reduce((acc, c) => acc + c, 0)
-        console.log(fr)
 
         return fr * 3000
     }
@@ -282,11 +253,26 @@
         appState = 'fall-done'
     }
 
-    const onClickNew = () => {
-        // loadPositionPx = loadBeginFallTopPx
-        // disksRotation = 0
+    /*$: {
+        if (!n2 || !n1 || !m || !t || !I || !d) {
+            console.group('whaattttttt')
+            console.log(n2)
+            console.log(n1)
+            console.log(m)
+            console.log(t)
+            console.log(I)
+            console.log(d)
+            console.groupEnd()
+        }
+    }*/
+
+    const onClickNew = async () => {
+        appState = 'targeting'
+
         loadFallingTime = 0
         disksRotationsDone = 0
+
+        await updatePhysicsTarget()
 
         appState = 'idle'
     }
@@ -498,6 +484,7 @@
         .ui {
             background: hsla(12 0% 60% / 30%);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-radius: 2rem;
 
             width: 400px;
@@ -530,6 +517,7 @@
 
                 .section-element {
                     backdrop-filter: brightness(10%);
+                    -webkit-backdrop-filter: brightness(10%);
                     background-clip: text;
                     padding: 1rem;
 
