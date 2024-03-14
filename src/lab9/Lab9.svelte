@@ -91,10 +91,7 @@
         loadDiameterPx: number
     }
 
-    let currentPulleyDiameterPx: number
-    let currentSystemRotation: number
-    let currentLoadPositionPx: number
-    let currentLoadDiameterPx: number
+    let physicsState: PhysicsState
 
     const physicsStateTweened = tweened<PhysicsState>(calculateTargetPhysicsState())
     physicsStateTweened.subscribe((currentState) => {
@@ -102,17 +99,14 @@
             return
         }
 
-        currentSystemRotation = currentState.systemRotation
-        currentLoadDiameterPx = currentState.loadDiameterPx
-        currentLoadPositionPx = currentState.loadPositionPx
-        currentPulleyDiameterPx = currentState.pulleyDiameterPx
+        physicsState = currentState
     })
 
     let threadTopPx: number = flywheelDiameterPx / 2
     let threadLeftPx: number
     let threadLengthPx: number
-    $: threadLeftPx = flywheelDiameterPx / 2 + currentPulleyDiameterPx / 2 - 2
-    $: threadLengthPx = currentLoadPositionPx - flywheelDiameterPx / 2
+    $: threadLeftPx = flywheelDiameterPx / 2 + physicsState.pulleyDiameterPx / 2 - 2
+    $: threadLengthPx = physicsState.loadPositionPx - flywheelDiameterPx / 2
 
     let loadFallingTime: number = 0
     let disksRotationsDone: number = 0
@@ -146,10 +140,10 @@
         ] as const
 
         const delta: PhysicsState = {
-            systemRotation: Math.abs(currentSystemRotation - targetState.systemRotation),
-            pulleyDiameterPx: Math.abs(currentPulleyDiameterPx - targetState.pulleyDiameterPx),
-            loadDiameterPx: Math.abs(currentLoadDiameterPx - targetState.loadDiameterPx),
-            loadPositionPx: Math.abs(currentLoadPositionPx - targetState.loadPositionPx)
+            systemRotation: Math.abs(physicsState.systemRotation - targetState.systemRotation),
+            pulleyDiameterPx: Math.abs(physicsState.pulleyDiameterPx - targetState.pulleyDiameterPx),
+            loadDiameterPx: Math.abs(physicsState.loadDiameterPx - targetState.loadDiameterPx),
+            loadPositionPx: Math.abs(physicsState.loadPositionPx - targetState.loadPositionPx)
         }
 
         const frs: PhysicsState = {
@@ -203,8 +197,8 @@
 
         appState = 'falling'
 
-        const loadEndFallTopPx = containerHeightPx - currentLoadDiameterPx
-        const loadBeginFallTopPx = containerHeightPx - (currentLoadDiameterPx + n1 * currentPulleyDiameterPx * Math.PI)
+        const loadEndFallTopPx = containerHeightPx - physicsState.loadDiameterPx
+        const loadBeginFallTopPx = containerHeightPx - (physicsState.loadDiameterPx + n1 * physicsState.pulleyDiameterPx * Math.PI)
 
         const t1Tweened = tweened(0)
         const H = loadEndFallTopPx - loadBeginFallTopPx
@@ -212,10 +206,10 @@
         let unsubscribes = [
             t1Tweened.subscribe(t1 => loadFallingTime = t1),
             t1Tweened.subscribe(t1 => {
-                currentLoadPositionPx = loadBeginFallTopPx + H * t1 * t1 / (t * t)
+                physicsState.loadPositionPx = loadBeginFallTopPx + H * t1 * t1 / (t * t)
             }),
             t1Tweened.subscribe(t1 => {
-                currentSystemRotation = n1 * t1 * t1 / (t * t)
+                physicsState.systemRotation = n1 * t1 * t1 / (t * t)
             })
         ]
 
@@ -227,7 +221,7 @@
 
         unsubscribes = [
             t2Tweened.subscribe(t2 => {
-                currentSystemRotation = n1
+                physicsState.systemRotation = n1
                     + 2 * n1 * t2 / t
                     - (n1 ** 2 * t2 ** 2) / (t ** 2 * n2)
             }),
@@ -253,9 +247,9 @@
         disksRotationsDone = 0
 
         await physicsStateTweened.set({
-            loadPositionPx: currentLoadPositionPx,
-            loadDiameterPx: currentLoadDiameterPx,
-            pulleyDiameterPx: currentPulleyDiameterPx,
+            loadPositionPx: physicsState.loadPositionPx,
+            loadDiameterPx: physicsState.loadDiameterPx,
+            pulleyDiameterPx: physicsState.pulleyDiameterPx,
             systemRotation: (n2 - n1) % 1
         }, { duration: 0 })
         await updatePhysicsTarget()
@@ -359,11 +353,9 @@
 </script>
 
 <div class="app" style="width: {width}px; height: {height}px; --scale: {$scale};">
-    <div class="ui-holder to-left">
+    <div class="ui-holder">
         <div class="ui">
-            <h3 class="experiment-counter">
-                Лабораторная работа №9
-            </h3>
+            <h3 class="ui-title">Лабораторная работа №9</h3>
             <section class="variant">
                 <div class="section-element">
                     <div class="flex">
@@ -431,11 +423,11 @@
 
     <div class="physics-container" style="height: {containerHeightPx}px; width: {flywheelDiameterPx}px;">
         <div class="flywheel disk"
-             style="width: {flywheelDiameterPx}px; transform: rotateZ({currentSystemRotation * 360}deg);"></div>
+             style="width: {flywheelDiameterPx}px; transform: rotateZ({physicsState.systemRotation * 360}deg);"></div>
         <div class="pulley disk"
-             style="width: {currentPulleyDiameterPx}px; top: {flywheelDiameterPx / 2 - currentPulleyDiameterPx / 2}px; left: {flywheelDiameterPx / 2 - currentPulleyDiameterPx / 2}px; transform: rotateZ({currentSystemRotation * 360}deg);"></div>
+             style="width: {physicsState.pulleyDiameterPx}px; top: {flywheelDiameterPx / 2 - physicsState.pulleyDiameterPx / 2}px; left: {flywheelDiameterPx / 2 - physicsState.pulleyDiameterPx / 2}px; transform: rotateZ({physicsState.systemRotation * 360}deg);"></div>
         <div class="load"
-             style="width: {currentLoadDiameterPx}px; height: {currentLoadDiameterPx}px; left: {threadLeftPx - currentLoadDiameterPx / 2}px; top: {currentLoadPositionPx}px;"></div>
+             style="width: {physicsState.loadDiameterPx}px; height: {physicsState.loadDiameterPx}px; left: {threadLeftPx - physicsState.loadDiameterPx / 2}px; top: {physicsState.loadPositionPx}px;"></div>
         <div class="thread" style="height: {threadLengthPx}px; top: {threadTopPx}px; left: {threadLeftPx}px"></div>
     </div>
 </div>
@@ -463,144 +455,7 @@
         translate: -50% -50%;
         width: fit-content;
         height: fit-content;
-
-        &.centered {
-            left: 50%;
-        }
-
-        &.to-left {
-            left: 33%;
-        }
-
-        .ui {
-            background: hsla(12 0% 60% / 30%);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 2rem;
-
-            width: 400px;
-            min-height: 500px;
-
-            .experiment-counter {
-                padding-top: 1.5rem;
-                padding-bottom: 0;
-                margin-bottom: 0;
-                font-size: 1.5rem;
-                color: white;
-                text-align: center;
-                font-weight: bold;
-            }
-
-            section {
-                padding: 0 1rem;
-
-                &.variant {
-                    padding-top: 2rem;
-                }
-
-                &.input {
-                    padding-top: 1.5rem;
-                }
-
-                &.output {
-                    padding-top: 1.5rem;
-                    padding-bottom: 1.5rem;
-                }
-
-                .section-element {
-                    backdrop-filter: brightness(10%);
-                    -webkit-backdrop-filter: brightness(10%);
-                    background-clip: text;
-                    padding: 1rem;
-
-                    .flex {
-                        display: flex;
-                        align-items: baseline;
-                        justify-content: space-between;
-                        position: relative;
-
-                        span {
-                            color: white;
-                            font-size: 1rem;
-                            background-color: transparent;
-                        }
-
-                        input {
-                            border: 0;
-                            outline: 0;
-                            -webkit-appearance: none;
-                            background: transparent;
-                            font-size: 16px;
-                            text-align: right;
-                            width: 100px;
-                            color: white;
-                            font-style: italic;
-
-                            &::placeholder {
-                                color: hsla(12 0% 60% / 20%);
-                                font-style: normal;
-                            }
-
-                            &:focus, &:valid {
-                                border: none;
-                                outline: none !important;
-                            }
-
-                            &::-webkit-outer-spin-button,
-                            &::-webkit-inner-spin-button {
-                                -webkit-appearance: none;
-                                margin: 0;
-                            }
-
-                            &[type=number] {
-                                -moz-appearance: textfield;
-                            }
-                        }
-                    }
-
-                    button {
-                        border: none;
-                        text-align: center;
-                        width: 100%;
-                        display: block;
-
-                        font-size: 1rem;
-                        font-weight: bold;
-                        color: white;
-
-                        border-radius: 2rem;
-                        padding: .5rem;
-                        cursor: pointer;
-
-                        background: hsla(12 0% 60% / 20%);
-
-                        &.blue {
-                            background: transparent;
-                            color: #3070B9;
-                        }
-                    }
-
-                    &:first-child {
-                        border-top-left-radius: 1rem;
-                        border-top-right-radius: 1rem;
-                    }
-
-                    &:last-child {
-                        border-bottom-left-radius: 1rem;
-                        border-bottom-right-radius: 1rem;
-                    }
-                }
-
-                .divider {
-                    height: 1px;
-                }
-
-                .error-indicator {
-                    font-size: 16px;
-                    color: #e72416;
-                }
-            }
-        }
+        left: 33%;
     }
 
     .physics-container {
