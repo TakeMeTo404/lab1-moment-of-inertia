@@ -1,19 +1,19 @@
 <script lang="ts">
-    import { tweened } from 'svelte/motion'
     import { quadInOut } from 'svelte/easing'
+    import { tweened } from 'svelte/motion'
+    import { height, scale, width } from '../lib/sizes'
     import {
-        mRange,
         dRange,
         dRangePx,
+        IRange,
+        mRange,
         n1Range,
+        n2Range,
         containerHeightPx,
         flywheelDiameterPx,
-        variantToI,
         loadDiameterRangePx,
-        IRange,
-        n2Range
+        variantToI
     } from './const'
-    import { width, height, scale } from './sizes'
 
     let variantNumber: number | null
     let I: number
@@ -252,7 +252,12 @@
         loadFallingTime = 0
         disksRotationsDone = 0
 
-        await physicsStateTweened.set({ loadPositionPx: currentLoadPositionPx, loadDiameterPx: currentLoadDiameterPx, pulleyDiameterPx: currentPulleyDiameterPx, systemRotation: (n2 - n1) % 1 }, { duration: 0 })
+        await physicsStateTweened.set({
+            loadPositionPx: currentLoadPositionPx,
+            loadDiameterPx: currentLoadDiameterPx,
+            pulleyDiameterPx: currentPulleyDiameterPx,
+            systemRotation: (n2 - n1) % 1
+        }, { duration: 0 })
         await updatePhysicsTarget()
 
         appState = 'idle'
@@ -372,7 +377,8 @@
                 <div class="section-element">
                     <div class="flex">
                         <span>m – Масса груза (кг)</span>
-                        <input disabled={!canInput} type="number" max={mRange[0]} min={mRange[1]} step=".1" placeholder={`от ${mRange[0]} до ${mRange[1]}`}
+                        <input disabled={!canInput} type="number" max={mRange[0]} min={mRange[1]} step=".1"
+                               placeholder={`от ${mRange[0]} до ${mRange[1]}`}
                                on:input={onInputM}/>
                     </div>
                 </div>
@@ -380,7 +386,8 @@
                 <div class="section-element">
                     <div class="flex">
                         <span>d – Диаметр шкива (м)</span>
-                        <input disabled={!canInput} type="number" max={dRange[0]} min={dRange[1]} step=".05" placeholder={`от ${dRange[0]} до ${dRange[1]}`}
+                        <input disabled={!canInput} type="number" max={dRange[0]} min={dRange[1]} step=".05"
+                               placeholder={`от ${dRange[0]} до ${dRange[1]}`}
                                on:input={onInputD}/>
                     </div>
                 </div>
@@ -388,7 +395,8 @@
                 <div class="section-element">
                     <div class="flex">
                         <span>n1 – Количество оборотов</span>
-                        <input disabled={!canInput} type="number" max="4" min="3" step="1" placeholder={`от ${n1Range[0]} до ${n1Range[1]}`} on:input={onInputN1}/>
+                        <input disabled={!canInput} type="number" max="4" min="3" step="1"
+                               placeholder={`от ${n1Range[0]} до ${n1Range[1]}`} on:input={onInputN1}/>
                     </div>
                 </div>
                 <div class="divider"></div>
@@ -444,7 +452,6 @@
         top: 50%;
         left: 50%;
         transform: translateX(-50%) translateY(-50%) scale(var(--scale));
-        border: 1px solid black;
         background-image: url("./assets/bg.jpg");
         background-size: contain;
         background-repeat: no-repeat;
