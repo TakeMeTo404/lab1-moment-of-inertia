@@ -35,11 +35,13 @@
             console.log(`n1 = ${n1?.toFixed(1)}`)
             console.log(`I = ${I?.toFixed(3)}кг*м^2`)
 
+            const fakeI = I * (.97 + Math.random() * .06)
+
             const frs = {
                 m: (m - mRange[0]) / (mRange[1] - mRange[0]),
                 d: 1 - (d - dRange[0]) / (dRange[1] - dRange[0]),
                 n1: (n1 - n1Range[0]) / (n1Range[1] - n1Range[0]),
-                I: (I - IRange[0]) / (IRange[1] - IRange[0])
+                I: (fakeI - IRange[0]) / (IRange[1] - IRange[0])
             } as const
 
             const coefficients = {
@@ -58,11 +60,13 @@
             // 1 + n1/n2 = m d^2 t^2 g / 8HI
             // t = sqrt( (1 + n1/n2) * 8I * PI * d * n1 / (m * d^2 * g) )
 
-            n2 = n2Range[0] + fr * fr * (n2Range[1] - n2Range[0])
+            /* todo: why fr square ?? */
+            // n2 = n2Range[0] + fr * fr * (n2Range[1] - n2Range[0])
+            n2 = n2Range[0] + Math.abs(fr) * (n2Range[1] - n2Range[0])
 
             const H = Math.PI * d * n1
 
-            t = Math.sqrt((1 + n1 / n2) * 8 * I * H / (m * d * d * 9.81))
+            t = Math.sqrt((1 + n1 / n2) * 8 * fakeI * H / (m * d * d * 9.81))
 
             console.log(`n2 = ${n2.toFixed(2)}`)
             console.log(`t = ${t.toFixed(2)}сек.`)
@@ -70,6 +74,8 @@
             // n2 = n1 / ((m * d * d * t * t * 9.81 / (8 * H * I)) - 1)
 
             const studentI = m * (d ** 2) * (t ** 2) * 9.81 / (8 * H * (1 + n1 / n2))
+
+            console.log(`fakeI = ${fakeI.toFixed(3)}кг*м^2`)
             console.log(`studentI = ${studentI.toFixed(3)}кг*м^2`)
 
             console.groupEnd()
