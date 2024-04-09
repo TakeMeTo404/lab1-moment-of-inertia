@@ -3,9 +3,11 @@ import { readable } from 'svelte/store'
 export const width = 1600
 export const height = 900
 
-const minFraction = 1000 / height
-const maxFraction = width / 780
+// const minFraction = 1000 / height
+// const maxFraction = width / 780
 
+const minFraction = width / height
+const maxFraction = width / height
 
 const calculateScale = () => {
     const widthProportion = window.innerWidth / width
