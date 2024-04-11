@@ -1,28 +1,30 @@
-// export const sceneHeightPx = 500
+import type { Range } from '../lib/range-util'
+import { range } from '../lib/range-util'
+
 export const pxPerMeter = 1000
 export const sceneHeight = .5 /* meters */
 export const sceneHeightPx = sceneHeight * pxPerMeter
 
 export const ranges = (function createRanges() {
-    const minmax = (min: number, max: number) => ({ min, max }) as const
-
-    const R = minmax(.04, 0.06)
-    const S1 = minmax(.15, .25)
-    const S2 = minmax(.15, .25)
+    // сантиметры
+    const R = range(6, 10) 
+    const S1 = range(15, 25)
+    const S2 = range(15, 25)
 
 
     return {
         physical: {
-            m: minmax(5, 20) /* граммы */,
-            M: minmax(50, 100) /* граммы */,
+            m: range(5, 20) /* граммы */,
+            M: range(50, 100) /* граммы */,
             R,
             S1,
             S2,
         } as const,
         px: {
-            loadSize: minmax(20, 40),
-            pulleyRadius: minmax(R.min * pxPerMeter, R.max * pxPerMeter),
-            S: minmax((S1.min + S2.min) * pxPerMeter, (S1.max + S2.max) * pxPerMeter)
+            loadSize: range(20, 40),
+            pulleyRadius: range(R.min / 100 * pxPerMeter, R.max / 100 * pxPerMeter),
+            overloadSize: range(5, 20),
+            S: range((S1.min + S2.min) / 100 * pxPerMeter, (S1.max + S2.max) / 100 * pxPerMeter)
         } as const
     } as const
 })()
@@ -61,3 +63,5 @@ export const variantToI: Record<number, number> = {
     29: 0.284,
     30: 0.091
 }
+
+export const variantRange: Range = range(1, 30)

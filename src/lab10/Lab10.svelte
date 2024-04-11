@@ -1,104 +1,336 @@
 <script lang="ts">
-    import { pipe } from 'lodash/fp'
+    import { every, pipe, values } from 'lodash/fp'
     import { tweened } from 'svelte/motion'
-    import { derived, readable, writable } from 'svelte/store'
+    import { readable, writable } from 'svelte/store'
     import type { Readable, Writable } from 'svelte/store'
-    import { variantToI, ranges, sceneHeightPx } from './const'
+    import { variantToI, ranges, sceneHeightPx, variantRange } from './const'
     import { height, scale, width } from '../lib/sizes'
+    import type { Range } from '../lib/range-util'
+    import { range, inRange, mid } from '../lib/range-util'
+    import { untrack } from 'svelte';
     import '../lib/ui-kit.scss'
+    import Input from '../lib/Input.svelte';
 
-    const formFields = ['variant', 'M', 'm1', 'm2', 'R', 'S1', 'S2', 'overloadIndex'] as const
+    type AppState = 'idle' | 'falling-phase-1' | 'falling-phase-2' | 'fall-done'
+    let appState = $state<AppState>('idle')
 
-    /*type Form = {
-        [K in typeof formFields[number]]: {
-            value: number,
-            error: string,
+    type Validator = (v: number | undefined) => string | undefined
+
+    type InputConfig = { title: string, range: Range, tweenMs?: number }
+
+    const input = ({
+        title,
+        range,
+        tweenMs
+    }: InputConfig) => {
+
+        let input = $state<number>()
+        let error = $derived.by(() => {
+            if (input === undefined || input === null || input === '') {
+                return 'Введите значение'
+            }
+            if (typeof input !== 'number') {
+                return 'Некорректное значение'
+            }
+            if (!inRange(range)(input)) {
+                return 'Значение вне диапазона'
+            }
+            return undefined
+        })
+        let valid = $derived(!error)
+        let showError = $state<boolean>()
+
+        let value = $state<number>(mid(range))
+        let tweening = $state<boolean>(false)
+
+        $effect(() => {
+            input;
+            showError = false
+        })
+
+        $effect(() => {
+            if (appState === 'idle') {
+                $effect(() => {
+                    if (!valid || typeof input !== 'number') {
+                        return
+                    }
+
+                    const newValue = input;
+                    const oldValue = untrack(() => value)
+
+                    if (!tweenMs) {
+                        value = newValue
+                        return
+                    }
+
+                    const fr = Math.abs(newValue - oldValue) / (range.max - range.min)
+
+                    let actual = true
+
+                    const tween = tweened(oldValue)
+
+                    tweening = true
+                    tween.set(newValue, { duration: tweenMs * fr })
+                        .then(() => {
+                            if (actual) {
+                                tweening = false
+                            }
+                        })
+
+                    const unsubscribe = tween.subscribe(v => value = v)
+                    
+                    return () => {
+                        actual = false
+                        unsubscribe()
+                    }
+                })
+            }
+        })
+
+        return {
+            get input() { return input },
+            set input(v) { console.log('setter'); input = v },
+
+            get error() { return error },
+            get valid() { return valid },
+            get showError() { return showError },
+            revealErrorIfIvalid() { if (!valid) showError = false },
+
+            get value() { return value },
+            get tweening() { return tweening },
+
+            title,
+            placeholder: `От ${range.min} до ${range.max}`
         }
-    }*/
-
-
-
-    let formValues: {
-        [K in 'variant']: Writable<number>
-        // [K in typeof formFields[number]]: Writable<number>
-    } = {
-        variant: writable()
     }
 
-    $: console.log(formValues.variant)
+    const variant = input({ title: 'Номер варианта', range: variantRange })
+    const M = input({ title: 'M – масса грузов', range: ranges.physical.M, tweenMs: 1000 })
+    const m1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.physical.m, tweenMs: 1000 })
+    const m2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.physical.m, tweenMs: 1000 })
+    const R = input({ title: 'R – радиус шкива (см.)', range: ranges.physical.R, tweenMs: 1000 })
+    const S1 = input({ title: 'S1 – расстояние (см.)', range: ranges.physical.S1, tweenMs: 1000 })
+    const S2 = input({ title: 'S2 – расстояние (см.)', range: ranges.physical.S2, tweenMs: 1000 })
+    const overloadI = input({ title: '', range: { min: 1, max: 2 } })
 
-    setTimeout(() => {
-        formValues.variant.set(1)
-    }, 1000)
+    const allInputs = [variant, M, m1, m2, R, S1, S2, overloadI]
 
-    setTimeout(() => {
-        formValues.variant.set(2)
-    }, 2000)
+    const allInputsValid = $derived(allInputs.every(input => input.valid))
+    const tweening = $derived(allInputs.some(input => input.tweening))
+
+    // const numberInput = (
+    //     title: string,
+    //     placeholder: string,
+    //     validator: Validator
+    // ) => {
+    //     let value = $state<number>()
+    //     const error = $derived(validator(value))
+
+    //     let displayedError = $state<string>()
+
+    //     $effect(() => {
+    //         if (appState === 'idle' || appState === 'tweening') {
+    //             $effect(() => {
+    //                 value;
+    //                 displayedError = undefined
+    //             })
+    //         }
+    //     })
+
+    //     return {
+    //         title,
+    //         placeholder,
+    //         get value() {
+    //             return value
+    //         },
+    //         set value(v: number | undefined) {
+    //             value = v
+    //         },
+    //         get error() {
+    //             return error
+    //         },
+    //         get displayedError() {
+    //             return displayedError
+    //         },
+    //         validate() {
+    //             displayedError = error
+    //         }
+    //     }
+    // }
+    // const rangeValidator = (range: Range): Validator => {
+    //     return (v) => {
+    //         if (v === undefined || v === null || v === '') {
+    //             return 'Введите значение'
+    //         }
+    //         if (typeof v !== 'number') {
+    //             return 'Некорректное значение'
+    //         }
+    //         if (!inRange(range)(v)) {
+    //             return 'Значение вне диапазона'
+    //         }
+    //         return undefined
+    //     }
+    // }
+    // const placeholder = (range: Range) => `От ${range.min} до ${range.max}`
+    // const smoothParameterInput = (
+    //     title: string,
+    //     range: Range
+    // ) => {
+
+    //     const input = numberInput(
+    //         title,
+    //         placeholder(range),
+    //         rangeValidator(range)
+    //     )
+
+    //     let value = $state((range.min + range.max) / 2)
+        
+    //     let tweening = $state<boolean>()
+
+    //     const tweenedValue = tweened<number>((range.min + range.max) / 2)
+
+    //     tweenedValue.subscribe((v) => {
+    //         if (appState === 'idle') {
+    //             value = v
+    //         }
+    //     })
+
+    //     $effect(() => {
+    //         if (appState === 'idle' || appState === 'tweening') {
+    //             if (!input.error && typeof input.value === 'number') {
+    //                 const timeFraction = Math.abs(untrack(() => value) - input.value) / (range.max - range.min)
+
+    //                 tweening = true
+    //                 tweenedValue.set(input.value, { duration: timeFraction * 2000 })
+    //                     .then(() => tweening = false)
+    //             }
+    //         }
+    //     })
 
 
-    /*let form = {
-        value: writable<number>(),
-        error: derived()
-    }*/
-
-    // let form: Form = {
-    //
+    //     return {
+    //         input,
+    //         get value() {
+    //             return value
+    //         },
+    //         get tweening() {
+    //             return tweening
+    //         }
+    //     }
     // }
 
+    // const variantNumber = numberInput(
+    //     'Номер варианта',
+    //     placeholder(variantRange),
+    //     rangeValidator(variantRange)
+    // )
+ 
+    // const parameters = {
+    //     M: smoothParameterInput('М – масса груза (г.)', ranges.physical.M),
+    //     m1: smoothParameterInput('m1 – масса 1 перегрузка (г.)', ranges.physical.m),
+    //     m2: smoothParameterInput('m2 – масса 2 перегрузка (г.)', ranges.physical.m),
+    //     R: smoothParameterInput('R – радиус шкива (см.)', ranges.physical.R),
+    //     S1: smoothParameterInput('S1 – расстояние 1 (см.)', ranges.physical.S1),
+    //     S2: smoothParameterInput('S2 – расстояние 2 (см.)', ranges.physical.S2),
+    // } as const
 
-    /*let form = {
-        variant: {
-            value: null as any as number,
-            error:
+    // const overloadIndex = smoothParameterInput('', range(1, 2))
+
+    // const allInputsValid = $derived(!variantNumber.error && Object.values(parameters).every(p => !p.input.error) && !overloadIndex.input.error)
+    // const tweening = $derived(Object.values(parameters).some(p => p.tweening) || overloadIndex.tweening)
+
+    $effect(() => console.log('allInputsValid = ', allInputsValid))
+    $effect(() => console.log('tweening = ', tweening))
+
+    const onClickStart = () => {
+        if (!allInputsValid) {
+            allInputs.forEach(input => input.revealErrorIfIvalid())
+            return
         }
-    } as const*/
 
+        if (tweening) {
+            console.warn('cannot start while tweening');
+            return
+        }
 
-/*    let form = {
-        variant: null
+        (async function fall() {
+            appState = 'falling-phase-1'
+
+            appState = 'fall-done'
+        })()
     }
 
-    $: console.log(form.variant)
+    // const onClickStart = () => {
+    //     if (!allInputsValid) {
+    //         variantNumber.validate()
+    //         Object.values(parameters).forEach((p) => p.input.validate())
+    //         overloadIndex.input.validate()
+    //         return
+    //     }
 
-    setTimeout(() => {
-        form.variant = 1 as any as null
-    }, 1000)
+    //     if (tweening) {
+    //         console.warn('cannot start while tweening');
+    //         return
+    //     }
 
-    setTimeout(() => {
-        form.variant = 2 as any as null
-    }, 2000)
+    //     fall()
+    // }
 
-    setTimeout(() => {
-        form = { variant: 5 as any as null }
-    }, 5000)*/
+    const onClickRepeat = () => {
+        console.log('repeat');
+    }
 
-    /*let variantNumber: number
-    let I: number
-    $: I = variantToI[variantNumber ?? 1] ?? variantToI[1]*/
+    // const fall = async () => {
 
-    let variantNumber: number | null
-    let I: number
-    $: I = variantToI[variantNumber ?? 1] ?? variantToI[1]
+    // }
 
-    let M: number = null as any as number
-    let m1: number = null as any as number
-    let m2: number = null as any as number
+    const pulley = $state({ sizePx: 0, rotation: 0 })
+    // $effect(() => {
+    //     if (appState === 'idle') {
+    //         const fr = (parameters.R.value - ranges.physical.R.min) / (ranges.physical.R.max - ranges.physical.R.min)
+    //         pulley.sizePx = ranges.px.pulleyRadius.min + (ranges.px.pulleyRadius.max - ranges.px.pulleyRadius.min) * fr
+    //     }
+    // })
 
-    let R: number = null as any as number
-    let S1: number = null as any as number
-    let S2: number = null as any as number
+    const loads = $state({ sizePx: 0, leftBottomPx: 0, rightBottomPx: 0 })
+    // $effect(() => {
+    //     if (appState === 'idle') {
+    //         const fr = (parameters.M.value - ranges.physical.M.min) / (ranges.physical.M.max - ranges.physical.M.min)
+    //         loads.sizePx = ranges.px.loadSize.min + (ranges.px.loadSize.max - ranges.px.loadSize.min) * fr
+    //     }
+    // })
 
-    let overloadIndex: 1 | 2 = null as any
+    const leftThreadLengthPx = $derived(sceneHeightPx - loads.leftBottomPx - loads.sizePx)
+    const rightThreadLengthPx = $derived(sceneHeightPx - loads.rightBottomPx - loads.sizePx)
 
-    let appState: 'idle' | 'moving-to-start' | 'falling-phase-1' | 'falling-phase-2' | 'fall-done' = 'idle'
-    let error: string = ''
+    const overload = $state({ sizePx: 0, bottomPx: 0 })
+    // $effect(() => {
+    //     if (appState === 'idle') {
+    //         const fr = (parameters.M.value - ranges.physical.M.min) / (ranges.physical.M.max - ranges.physical.M.min)
+    //         loads.sizePx = ranges.px.loadSize.min + (ranges.px.loadSize.max - ranges.px.loadSize.min) * fr
+    //     }
+    // })
 
-    let canInput: boolean = false, canClickStart: boolean = false, canClickRaise: boolean = false
-    $: canInput = (appState === 'idle' || appState === 'moving-to-start')
-    $: canClickStart = (appState === 'idle' || appState === 'moving-to-start')
-    $: canClickRaise = appState === 'fall-done'
+    type SceneState = {
+        pulley: {
+            sizePx: number,
+            rotation: number
+        },
+        load: {
+            sizePx: number,
+            leftBottomPx: number,
+            rightBottomPx: number
+        },
+        overload: {
+            sizePx: number,
+            bottomPx: number
+        },
+        magnet: {
+            bottomPx: number
+        }
+    }
 
-    const sceneState = {
+    const sceneState = $state<SceneState>({
         pulley: {
             sizePx: ranges.px.pulleyRadius.max * 2,
             rotation: 0
@@ -115,38 +347,25 @@
         magnet: {
             bottomPx: 200
         }
-    }
-
-    const onClickStart = async () => {
-
-
-        appState = 'fall-done'
-    }
-
-    const x = tweened(0)
-
-    x.subscribe(v => sceneState.pulley.rotation = v)
-
-    x.set(30, { duration: 30000 })
-
+    })
 
 </script>
 
 <div class="app" style="width: {width}px; height: {height}px; scale: {$scale};">
     <div class="scene-center">
-        <div class="scene" style="height: {sceneHeightPx}px; width: {sceneState.pulley.sizePx}px;">
+        <div class="scene" style="height: {sceneHeightPx}px; width: {pulley.sizePx}px;">
             <div class="pulley"
-                 style="height: {sceneState.pulley.sizePx}px; width: {sceneState.pulley.sizePx}px; rotate: {sceneState.pulley.rotation * 360}deg;"></div>
+                 style="height: {pulley.sizePx}px; width: {pulley.sizePx}px; rotate: {pulley.rotation * 360}deg;"></div>
 
             <div class="thread"
-                 style="left: 0; height: {sceneHeightPx - sceneState.load.leftBottomPx - sceneState.load.sizePx}px;"></div>
+                 style="left: 0; height: {leftThreadLengthPx}px;"></div>
             <div class="load left-load"
-                 style="height: {sceneState.load.sizePx}px; width: {sceneState.load.sizePx}px; bottom: {sceneState.load.leftBottomPx}px;"></div>
+                 style="height: {loads.sizePx}px; width: {loads.sizePx}px; bottom: {loads.leftBottomPx}px;"></div>
 
             <div class="thread"
-                 style="right: 0; height: {sceneHeightPx - sceneState.load.rightBottomPx - sceneState.load.sizePx}px;"></div>
+                 style="right: 0; height: {rightThreadLengthPx}px;"></div>
             <div class="load right-load"
-                 style="height: {sceneState.load.sizePx}px; width: {sceneState.load.sizePx}px; bottom: {sceneState.load.rightBottomPx}px;"></div>
+                 style="height: {loads.sizePx}px; width: {loads.sizePx}px; bottom: {loads.rightBottomPx}px;"></div>
 
             <div class="magnet" style="bottom: {sceneState.magnet.bottomPx}px;"></div>
         </div>
@@ -156,64 +375,92 @@
         <div class="ui">
             <h1>Лабораторная работа №10</h1>
 
-            <section style="padding-top: 2rem;">
+            {#snippet numberInput(input)}
                 <div class="section-element">
                     <div class="flex">
-                        <span>Номер варианта</span>
-<!--                        <input class="text-field" placeholder="От 1 до 30" bind:value={form.variant}/>-->
-                        <input class="text-field" placeholder="От 1 до 30" bind:value={formValues.variant}/>
+                        <span>{input.title}</span>
+                        <input
+                            bind:value={input.input}
+                            placeholder={input.placeholder}
+                            type="number"
+                            class="text-field"
+                        />  
+                        {#if !input.valid && input.showError}
+                            <span class="error red">{ input.error }</span>
+                        {/if}
                     </div>
                 </div>
+            {/snippet}
+
+            <section style="padding-top: 2rem;">
+                {@render numberInput(variant)}
+
+                <!-- <div class="section-element">
+                    <div class="flex">
+                        {@render numberInput(variant)} -->
+                        <!-- <Input bind:value={variant}>
+                            {#snippet input(v)}
+                                <span>{'Some title'}</span>
+                                <input
+                                bind:value={v.value}
+                                placeholder={'Placeholder'}
+                                type="number"
+                                class="text-field" 
+                                />            
+                            {/snippet}
+                        </Input> -->
+                        <!-- <span>{variantNumber.title}</span>
+                        <input
+                        bind:value={variantNumber.value}
+                        placeholder={variantNumber.placeholder}
+                        type="number"
+                        class="text-field" 
+                        />
+                        {#if variantNumber.displayedError}
+                            <span class="error red">{ variantNumber.displayedError }</span>
+                        {/if} -->
+                    <!-- </div>
+                </div> -->
             </section>
 
             <section style="padding-top: 1.5rem;">
-                <div class="section-element">
-                    <div class="flex">
-                        <span>M – масса груза (г.)</span>
-                        <input class="text-field" placeholder="От {ranges.physical.M.min} до {ranges.physical.M.max}"/>
+                {#each [M, m1, m2, R, S1, S2] as input}
+                    {@render numberInput(input)}
+                    <div class="divider"></div>
+                {/each}
+
+                <!-- {#each Object.values(parameters) as p }
+                    <div class="section-element">
+                        <div class="flex">
+                            <span class:red={p.input.displayedError}>{p.input.title}</span>
+                            <input
+                            bind:value={p.input.value}
+                            placeholder={p.input.placeholder}
+                            type="number"
+                            class="text-field"
+                            />  
+                            {#if p.input.displayedError}
+                            <span class="error red">{ p.input.displayedError }</span>
+                            {/if}
+                        </div>
                     </div>
-                </div>
-                <div class="divider"></div>
+                    <div class="divider"></div>
+                {/each} -->
+
                 <div class="section-element">
-                    <div class="flex">
-                        <span>m1 – масса 1 перегрузка (г.)</span>
-                        <input class="text-field" placeholder="От {ranges.physical.m.min} до {ranges.physical.m.max}"/>
-                    </div>
+                    <!-- <Input bind:value={index}>
+                        {#snippet input(v)}
+                            <span>{'Some title'}</span>
+                            <input type="radio" value={1} bind:group={v.value}>
+                            <input type="radio" value={2} bind:group={v.value}>        
+                        {/snippet}
+                    </Input> -->
+                    <!-- <input type="radio" value={1} bind:group={overloadIndex.input.value}>
+                    <input type="radio" value={2} bind:group={overloadIndex.input.value}> -->
                 </div>
-                <div class="divider"></div>
+
                 <div class="section-element">
-                    <div class="flex">
-                        <span>m1 – масса 2 перегрузка (г.)</span>
-                        <input class="text-field" placeholder="От {ranges.physical.m.min} до {ranges.physical.m.max}"/>
-                    </div>
-                </div>
-                <div class="divider"></div>
-                <div class="section-element">
-                    <div class="flex">
-                        <span>R – радиус шкива (см.)</span>
-                        <input class="text-field" placeholder="От {ranges.physical.R.min * 100} до {ranges.physical.R.max * 100}"/>
-                    </div>
-                </div>
-                <div class="divider"></div>
-                <div class="section-element">
-                    <div class="flex">
-                        <span>S1 – расстояние 1 (см.)</span>
-                        <input class="text-field" placeholder="От {ranges.physical.S1.min * 100} до {ranges.physical.S1.max * 100}"/>
-                    </div>
-                </div>
-                <div class="divider"></div>
-                <div class="section-element">
-                    <div class="flex">
-                        <span>S2 – расстояние 2 (см.)</span>
-                        <input class="text-field" placeholder="От {ranges.physical.S2.min  * 100} до {ranges.physical.S2.max * 100}"/>
-                    </div>
-                </div>
-                <div class="section-element">
-                    <input name="index" type="radio" class="toggle" checked/>
-                    <input name="index" type="radio" class="toggle"/>
-                </div>
-                <div class="section-element">
-                    <button>Отпустить груз</button>
+                    <button onclick={onClickStart}>Отпустить груз</button>
                 </div>
             </section>
 
