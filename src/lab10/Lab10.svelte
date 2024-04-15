@@ -2,14 +2,15 @@
     import { pipe } from 'lodash/fp'
     import { random } from 'lodash'
     import { tweened } from 'svelte/motion'
-    import { variantToI, ranges, sceneHeightPx, variantRange, pxPerMeter } from './const'
-    // import { height, scale, width } from '../lib/sizes'
+    import { variantToI, ranges, sceneHeightPx, sceneHeight, variantRange, pxPerSm } from './const'
     import type { Range } from '../lib/range-util'
     import { inRange, mid, calcFr, lerp } from '../lib/range-util'
     import { untrack } from 'svelte';
     import '../lib/ui-kit.scss'
     import { appSizeController } from '../lib/app-sizes-controller.svelte';
+    import Debil from './Debil.svelte';
 
+    let appSizes = appSizeController({ width: 1600, height: 900, minFraction: 16 / 11, maxFraction: 20 / 9 })
     let appState = $state<'idle' | 'falling-phase-1' | 'falling-phase-2' | 'fall-done' | 'raising-phase-1' | 'raising-phase-2'>('idle')
 
     type InputConfig = { title: string, range: Range, tweenMs?: number, initialValue?: number }
@@ -20,9 +21,9 @@
         initialValue
     }: InputConfig) => {
 
-        let input = $state<number>(initialValue)
+        let input = $state<number>(initialValue as any)
         let error = $derived.by(() => {
-            if (input === undefined || input === null || input === '') {
+            if (input === undefined || input === null || input as any === '') {
                 return 'Введите значение'
             }
             if (typeof input !== 'number') {
@@ -104,40 +105,138 @@
         }
     }
 
-    const variant = input({ title: 'Номер варианта', range: variantRange })
-    const M = input({ title: 'M – масса грузов (г.)', range: ranges.physical.M, tweenMs: 1000 })
-    const m1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.physical.m, tweenMs: 1000 })
-    const m2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.physical.m, tweenMs: 1000 })
-    const R = input({ title: 'R – радиус шкива (см.)', range: ranges.physical.R, tweenMs: 1000 })
-    const S1 = input({ title: 'S1 – расстояние (см.)', range: ranges.physical.S1, tweenMs: 1000 })
-    const S2 = input({ title: 'S2 – расстояние (см.)', range: ranges.physical.S2, tweenMs: 1000 })
-    const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500 })
-    // const variant = input({ title: 'Номер варианта', range: variantRange, initialValue: random(1, 30) })
-    // const M = input({ title: 'M – масса грузов (г.)', range: ranges.physical.M, tweenMs: 1000, initialValue: random(50, 100) })
-    // const m1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.physical.m, tweenMs: 1000, initialValue: random(5, 20) })
-    // const m2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.physical.m, tweenMs: 1000, initialValue: random(5, 20) })
-    // const R = input({ title: 'R – радиус шкива (см.)', range: ranges.physical.R, tweenMs: 1000, initialValue: random(6, 10) })
-    // const S1 = input({ title: 'S1 – расстояние (см.)', range: ranges.physical.S1, tweenMs: 1000, initialValue: random(10, 20) })
-    // const S2 = input({ title: 'S2 – расстояние (см.)', range: ranges.physical.S2, tweenMs: 1000, initialValue: random(10, 20) })
-    // const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500, initialValue: random(1, 2) })
+    // const variant = input({ title: 'Номер варианта', range: variantRange })
+    // const inputM = input({ title: 'M – масса грузов (г.)', range: ranges.M, tweenMs: 1000 })
+    // const inputM1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000 })
+    // const inputM2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000 })
+    // const inputR = input({ title: 'R – радиус шкива (см.)', range: ranges.R, tweenMs: 1000 })
+    // const inputS1 = input({ title: 'S1 – расстояние (см.)', range: ranges.S1, tweenMs: 1000 })
+    // const inputS2 = input({ title: 'S2 – расстояние (см.)', range: ranges.S2, tweenMs: 1000 })
+    // const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500 })
+    const variant = input({ title: 'Номер варианта', range: variantRange, initialValue: random(1, 30) })
+    const inputM = input({ title: 'M – масса грузов (г.)', range: ranges.M, tweenMs: 1000, initialValue: random(50, 100) })
+    const inputM1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000, initialValue: random(5, 20) })
+    const inputM2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000, initialValue: random(5, 20) })
+    const inputR = input({ title: 'R – радиус шкива (см.)', range: ranges.R, tweenMs: 1000, initialValue: random(6, 10) })
+    const inputS1 = input({ title: 'S1 – расстояние (см.)', range: ranges.S1, tweenMs: 1000, initialValue: random(10, 20) })
+    const inputS2 = input({ title: 'S2 – расстояние (см.)', range: ranges.S2, tweenMs: 1000, initialValue: random(10, 20) })
+    const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500, initialValue: random(1, 2) })
 
-    const allInputs = [variant, M, m1, m2, R, S1, S2, overloadI]
+    const allInputs = [variant, inputM, inputM1, inputM2, inputR, inputS1, inputS2, overloadI]
 
     const allInputsValid = $derived(allInputs.every(input => input.valid))
     const tweening = $derived(allInputs.some(input => input.tweening))
 
+    // $inspect(allInputsValid).with((_, v) => console.log('allInputsValid := ', v))
+    // $inspect(tweening).with((_, v) => console.log('tweening := ', v))
+    // $effect(() => console.log('allInputsValid = ', allInputsValid))
+    // $effect(() => console.log('tweening = ', tweening))
+
+    const M = $derived(inputM.value)
+    const m1 = $derived(inputM1.value)
+    const m2 = $derived(inputM2.value)
+    const R = $derived(inputR.value)
+    const S1 = $derived(inputS1.value)
+    const S2 = $derived(inputS2.value)
+
     const g = 9.81
+    const pi = 3.1415
     const I = $derived(variantToI[Math.round(variant.value)])
-    $inspect(I)
 
-    $effect(() => console.log('allInputsValid = ', allInputsValid))
-    $effect(() => console.log('tweening = ', tweening))
-
-    let rnd = $state(Math.random())
+    /* L – loads size in sm. h1/h2 – heights of left and right loads */
+    let L = $state(0)
+    let h1 = $state(0)
+    let h2 = $state(0)
     $effect(() => {
-      m1.input; m2.input;
-      rnd = Math.random()
+      if (appState === 'idle') {
+        h1 = 0
+        h2 = S1 + S2
+      }
     })
+    $effect(() => {
+      if (appState === 'idle') {
+        L = pipe(
+          calcFr(ranges.M),
+          lerp(ranges.L)
+        )(M)
+      }
+    })
+
+    let overload = $state({ size: 0, bottom: 0 })
+    $effect(() => {
+      overload.size = pipe(
+        () => overloadI.value - 1,
+        lerp({ min: Math.min(m1, m2), max: Math.max(m1, m2) }),
+        calcFr(ranges.m),
+        lerp(ranges.O)
+      )()
+    })
+    $effect(() => {
+        switch (appState) {
+            case 'idle':
+            case 'falling-phase-1':
+            case 'raising-phase-2':
+                overload.bottom = h2 + L
+                return
+            case 'falling-phase-2':
+            case 'fall-done':
+            case 'raising-phase-1':
+                overload.bottom = S2 + L
+                return
+        }
+    })
+
+    let alpha = $state(Math.random())
+
+    const displayedTime = $state({
+        t1: 0,
+        t2: 0
+    })
+
+    const acceleration = (): number => {
+      let rnd = $state(Math.random())
+
+      const [a1, a2] = (function () {
+          if (m2 <= m1) {
+            let minA1 =
+              (R ** 2) * (m1 - m2) * g
+              /
+              (I + (R**2) * (2 * M + m1))
+            minA1 += .1
+            const maxA1 = minA1 + .5
+
+            const a1 = minA1 + (maxA1 - minA1) * rnd
+            console.log(`rnd = ${rnd}`)
+            const a2 = (a1 * (I + (R**2) * (2 * M + m1)) - (R ** 2) * (m1 - m2) * g) /
+              (I + (R**2) * (2 * M + m2))
+
+            return [a1, a2]
+          }
+          else {
+
+            let minA2 = ((0) * (I + (R**2) * (2 * M + m1)) - (R ** 2) * (m1 - m2) * g) /
+              (I + (R**2) * (2 * M + m2))
+            minA2 += .1
+            const maxA2 = minA2 + .5
+
+            const a2 = minA2 + (maxA2 - minA2) * rnd
+            console.log(`inverse rnd = ${rnd}`)
+
+            const a1 =
+              (a2 * (I + R**2 * (2 * M + m2)) + R**2 * (m1 - m2) * g)
+              /
+              (I + R**2 * (2*M + m1))
+
+            return [a1, a2]
+          }
+      })()
+      console.log(`a1 = ${a1.toFixed(3)}\ta2 = ${a2.toFixed(3)}`)
+
+      const studentI = R**2 / (a1 - a2) * ((m1 - m2) * g - a1 * (2 * M + m1)+ a2 * (2 * M + m2))
+      console.log(`I = ${I.toFixed(6)}\tstudentI = ${studentI.toFixed(6)}\tdiff = ${Math.abs(I - studentI).toFixed(6)}`)
+
+      return overloadI.value === 1 ? a1: a2
+    }
 
     const onClickStart = () => {
         if (appState !== 'idle') {
@@ -154,135 +253,53 @@
             return
         }
 
-        // if (m1.value === m2.value) {
-        //   alert('m1 не может быть равно m2')
-        //   return
-        // }
+        fall()
+    }
 
-        (async function fall() {
+    const fall = async () => {
+        console.log("")
+        const a = acceleration()
 
-            const _m1 = m1.value
-            const _m2 = m2.value
+        console.log(`a = ${a}`)
 
-            const a = (function calculateA() {
-                const [a1, a2] = (function () {
-                    if (m2.value <= m1.value) {
-                      let minA1 =
-                        (R.value ** 2) * (_m1 - _m2) * g
-                        /
-                        (I + (R.value**2) * (2 * M.value + _m1))
-                      minA1 += .1
-                      const maxA1 = minA1 + .5
+        const t1 = Math.sqrt(2 * S1 / 100 / a)
+        const t2 = S2 / 100 / (a * t1)
 
-                      // const rnd = Math.random()
-                      const a1 = minA1 + (maxA1 - minA1) * rnd
-                      console.log(`rnd = ${rnd}`)
-                      const a2 = (a1 * (I + (R.value**2) * (2 * M.value + _m1)) - (R.value ** 2) * (_m1 - _m2) * g) /
-                        (I + (R.value**2) * (2 * M.value + _m2))
+        let pulleyStartRotation = alpha
 
-                      return [a1, a2]
-                    }
-                    else {
+        let tw1 = tweened(0)
+        let unsubscribe = tw1.subscribe(t => {
+            displayedTime.t1 = t
 
-                      let minA2 = ((0) * (I + (R.value**2) * (2 * M.value + _m1)) - (R.value ** 2) * (_m1 - _m2) * g) /
-                        (I + (R.value**2) * (2 * M.value + _m2))
-                      minA2 += .1
-                      const maxA2 = minA2 + .5
+            const distance =  a * t * t / 2 * 100
 
-                      // const rnd = Math.random()
-                      const a2 = minA2 + (maxA2 - minA2) * rnd
-                      console.log(`inverse rnd = ${rnd}`)
+            h1 = distance
+            h2 = S1 + S2 - distance
+            alpha = pulleyStartRotation + distance / (2 * pi * R)
+        })
 
-                      const a1 =
-                        (a2 * (I + R.value**2 * (2 * M.value + _m2)) + R.value**2 * (_m1 - _m2) * g)
-                        /
-                        (I + R.value**2 * (2*M.value + _m1))
+        appState = 'falling-phase-1'
+        await tw1.set(t1, { duration: t1 * 1000 })
+        unsubscribe()
 
-                      return [a1, a2]
-                    }
-                })()
+        pulleyStartRotation = alpha
 
-                // const _m1 = Math.max(m1.value, m2.value)
-                // const _m2 = Math.min(m1.value, m2.value)
-                // const _m1 = m1.value
-                // const _m2 = m2.value
+        let tw2 = tweened(0)
+        unsubscribe = tw2.subscribe(t => {
+            displayedTime.t2 = t
 
-                // if (inverse) {
-                //   alert('not implemeted yet')
-                // }
+            const distance = a * t1 * t * 100
 
+            h1 = S1 + distance
+            h2 = S2 - distance
+            alpha = pulleyStartRotation + distance / (2 * pi * R)
+        })
 
+        appState = 'falling-phase-2'
+        await tw2.set(t2, { duration: t2 * 1000 })
+        unsubscribe()
 
-                // const a2Func = (a1: number) => (a1 * (I + (R.value**2) * (2 * M.value + _m1)) - (R.value ** 2) * (_m1 - _m2) * g) /
-                //   (I + (R.value**2) * (2 * M.value + _m2))
-
-                // let minA1 =
-                //   (R.value ** 2) * (_m1 - _m2) * g
-                //   /
-                //   (I + (R.value**2) * (2 * M.value + _m1))
-                // minA1 += .1
-                // const maxA1 = minA1 + .5
-
-                // const rnd = Math.random()
-                // const a1 = minA1 + (maxA1 - minA1) * rnd
-                // console.log(`rnd = ${rnd}`)
-                // const a2 = a2Func(a1)
-
-                console.log(`a1 = ${a1.toFixed(3)}\ta2 = ${a2.toFixed(3)}`)
-
-                const studentI = R.value**2 / (a1 - a2) * ((_m1 - _m2) * g - a1 * (2 * M.value + _m1)+ a2 * (2 * M.value + _m2))
-                console.log(`I = ${I.toFixed(6)}\tstudentI = ${studentI.toFixed(6)}\tdiff = ${Math.abs(I - studentI).toFixed(6)}`)
-
-                return overloadI.value === 1 ? a1: a2
-
-                // const min_a1 = (R.value ** 2) * (_m1 - _m2) * g / (I + (R.value ** 2) * (2 * M.value + _m1))
-            })()
-
-            console.log(`a = ${a}`)
-
-            // m/s^2
-            // const a = 1/10
-            const t1 = Math.sqrt(2 * S1.value / 100 / a)
-            const t2 = S2.value / 100 / (a * t1)
-
-            let pulleyStartRotation = pulley.rotation
-
-            let tw1 = tweened(0)
-            let unsubscribe = tw1.subscribe(t => {
-                displayedTime.t1 = t
-
-                const distance =  a * t * t / 2
-                const distancePx = distance * pxPerMeter
-
-                loads.leftBottomPx = distancePx
-                loads.rightBottomPx = S1px + S2px - distancePx
-                pulley.rotation = pulleyStartRotation + distance / (2 * Math.PI * R.value / 100)
-            })
-
-            appState = 'falling-phase-1'
-            await tw1.set(t1, { duration: t1 * 1000 })
-            unsubscribe()
-
-            pulleyStartRotation = pulley.rotation
-
-            let tw2 = tweened(0)
-            unsubscribe = tw2.subscribe(t => {
-                displayedTime.t2 = t
-
-                const distance = a * t1 * t
-                const distancePx = distance * pxPerMeter
-
-                loads.leftBottomPx = S1px + distancePx
-                loads.rightBottomPx = S2px - distancePx
-                pulley.rotation = pulleyStartRotation + distance / (2 * Math.PI * R.value / 100)
-            })
-
-            appState = 'falling-phase-2'
-            await tw2.set(t2, { duration: t2 * 1000 })
-            unsubscribe()
-
-            appState = 'fall-done'
-        })()
+        appState = 'fall-done'
     }
 
     const onClickRepeat = async () => {
@@ -291,160 +308,63 @@
         }
 
         const ms = {
-          phase1: S2px / (S1px + S2px) * 2000,
-          phase2: S1px / (S1px + S2px) * 2000
+          t1: S2 / (S1 + S2) * 2000,
+          t2: S1 / (S1 + S2) * 2000
         }
 
-        let pulleyStartRotation = pulley.rotation
+        let pulleyStartRotation = alpha
 
         const tw1 = tweened(0)
-        let unsubscribe = tw1.subscribe(t1 => {
-          const distancePx = S2px * t1 / ms.phase1
+        let unsubscribe = tw1.subscribe(t => {
+          const distance = S2 * t / ms.t1
 
-          loads.rightBottomPx = distancePx
-          loads.leftBottomPx = S1px + S2px - distancePx
-          pulley.rotation = pulleyStartRotation - distancePx / (2 * Math.PI * R.value / 100 * pxPerMeter)
+          h2 = distance
+          h1 = S1 + S2 - distance
+          alpha = pulleyStartRotation - distance / (2 * pi * R)
         })
 
         appState = 'raising-phase-1'
-        await tw1.set(ms.phase1, { duration: ms.phase1 })
+        await tw1.set(ms.t1, { duration: ms.t1 })
         unsubscribe()
 
-        pulleyStartRotation = pulley.rotation
+        pulleyStartRotation = alpha
 
         const tw2 = tweened(0)
-        unsubscribe = tw2.subscribe(t2 => {
-          const distancePx = S1px * t2 / ms.phase2
+        unsubscribe = tw2.subscribe(t => {
+          const distance = S1 * t / ms.t2
 
-          loads.rightBottomPx = S2px + distancePx
-          loads.leftBottomPx = S1px - distancePx
-          pulley.rotation = pulleyStartRotation - distancePx / (2 * Math.PI * R.value / 100 * pxPerMeter)
+          h2 = S2 + distance
+          h1 = S1 - distance
+          alpha = pulleyStartRotation - distance / (2 * pi * R)
         })
 
         appState = 'raising-phase-2'
-        await tw2.set(ms.phase2, { duration: ms.phase2 })
+        await tw2.set(ms.t2, { duration: ms.t2 })
         unsubscribe()
 
         appState = 'idle'
     }
 
-    let S1px = $state<number>(0)
-    $effect(() => {
-        if (appState === 'idle') {
-            S1px = pipe(
-                () => S1.value,
-                calcFr(ranges.physical.S1),
-                lerp(ranges.px.S1)
-            )()
-        }
-    })
-
-    let S2px = $state<number>(0)
-    $effect(() => {
-        if (appState === 'idle') {
-            S2px = pipe(
-                () => S2.value,
-                calcFr(ranges.physical.S2),
-                lerp(ranges.px.S2)
-            )()
-        }
-    })
-
-    const pulley = $state({ diameterPx: 0, rotation: 0 })
-    $effect(() => {
-        if (appState === 'idle') {
-            pulley.diameterPx = pipe(
-                () => R.value,
-                calcFr(ranges.physical.R),
-                lerp(ranges.px.pulleyRadius),
-                r => r * 2
-            )()
-        }
-    })
-
-    const loads = $state({ sizePx: 0, leftBottomPx: 0, rightBottomPx: 0 })
-    $effect(() => {
-        if (appState === 'idle') {
-            loads.sizePx = pipe(
-                () => M.value,
-                calcFr(ranges.physical.M),
-                lerp(ranges.px.loadSize)
-            )()
-
-            loads.leftBottomPx = 0
-            loads.rightBottomPx = S1px + S2px
-        }
-    })
-
-    const leftThreadLengthPx = $derived(sceneHeightPx - loads.leftBottomPx - loads.sizePx)
-    const rightThreadLengthPx = $derived(sceneHeightPx - loads.rightBottomPx - loads.sizePx)
-
-    let ringBottomPx = $derived(S2px + loads.sizePx)
-
-    const overload = $state({ sizePx: 0, bottomPx: 0 })
-    $effect(() => {
-        if (appState === 'idle') {
-            overload.sizePx = pipe(
-                () => overloadI.value - 1,
-                lerp({ min: Math.min(m1.value, m2.value), max: Math.max(m1.value, m2.value) }),
-                calcFr(ranges.physical.m),
-                lerp(ranges.px.overloadSize)
-            )()
-        }
-    })
-    $effect(() => {
-        switch (appState) {
-            case 'idle':
-            case 'falling-phase-1':
-            case 'raising-phase-2':
-                overload.bottomPx = loads.rightBottomPx + loads.sizePx
-                return
-            case 'falling-phase-2':
-            case 'fall-done':
-            case 'raising-phase-1':
-                overload.bottomPx = S2px + loads.sizePx
-                return
-        }
-    })
-
-    const displayedTime = $state({
-        t1: 0,
-        t2: 0
-    })
-    $effect(() => {
-      if (appState === 'idle') {
-        displayedTime.t1 = displayedTime.t2 = 0
-      }
-    })
-
-    let appSizes = appSizeController({ width: 1600, height: 900, minFraction: 16 / 11, maxFraction: 20 / 9 })
-
 </script>
-
 <div class="app" style="width: {appSizes.width}px; height: {appSizes.height}px; scale: {appSizes.scale};">
     <div class="scene-center">
-        <div class="scene" style="height: {sceneHeightPx}px; width: {pulley.diameterPx}px;">
-            <div class="pulley"
-                 style="height: {pulley.diameterPx}px; width: {pulley.diameterPx}px; rotate: {pulley.rotation * 360}deg;"></div>
+        <div class="scene" style="height: {sceneHeightPx}px; width: {2 * R * pxPerSm}px;">
 
-            <div class="thread"
-                 style="left: 0; height: {leftThreadLengthPx}px;"></div>
-            <div class="load left-load"
-                 style="height: {loads.sizePx}px; width: {loads.sizePx}px; bottom: {loads.leftBottomPx}px;"></div>
+            <div class="pulley" style="height: {2 * R * pxPerSm}px; width: {2 * R * pxPerSm}px; rotate: {alpha * 360}deg;"></div>
+            <div class="thread" style="left: 0; height: {(sceneHeight - L - h1) * pxPerSm}px;"></div>
+            <div class="thread" style="right: 0; height: {(sceneHeight - L - h2) * pxPerSm}px;"></div>
 
-            <div class="thread"
-                 style="right: 0; height: {rightThreadLengthPx}px;"></div>
-            <div class="load right-load"
-                 style="height: {loads.sizePx}px; width: {loads.sizePx}px; bottom: {loads.rightBottomPx}px;"></div>
+            <div class="load left-load" style="height: {L * pxPerSm}px; width: {L * pxPerSm}px; bottom: {h1 * pxPerSm}px;"></div>
+            <div class="load right-load" style="height: {L * pxPerSm}px; width: {L * pxPerSm}px; bottom: {h2 * pxPerSm}px;"></div>
+            <div class="overload" style="width: {overload.size * pxPerSm}px; height: {overload.size * pxPerSm}px; bottom: {overload.bottom * pxPerSm}px;"></div>
 
-            <div class="ring" style="bottom: {ringBottomPx}px;"></div>
-
-            <div class="overload" style="width: {overload.sizePx}px; height: {overload.sizePx}px; bottom: {overload.bottomPx}px;"></div>
+            <div class="ring" style="bottom: {(S2 + L) * pxPerSm}px;"></div>
         </div>
     </div>
 
     <div class="ui-holder">
         <div class="ui">
+            <!-- <Debil></Debil> -->
             <h1>Лабораторная работа №10</h1>
 
             {#snippet numberInput(input)}
@@ -470,17 +390,28 @@
             </section>
 
             <section style="padding-top: 1.5rem;">
-                {#each [M, m1, m2, R, S1, S2] as input}
+                {#each [inputM, inputM1, inputM2, inputR, inputS1, inputS2] as input}
                     {@render numberInput(input)}
                     <div class="divider"></div>
                 {/each}
                 <div class="section-element">
-                    <input type="radio" value={1} bind:group={overloadI.input} readonly={appState !== 'idle'}/>
-                    <input type="radio" value={2} bind:group={overloadI.input} readonly={appState !== 'idle'}/>
+                    <div class="flex">
+                        <span>Номер перегрузка</span>
+                        <div class="button-group">
+                            <button
+                                class:selected={overloadI.input === 1}
+                                onclick={() => {if (appState === 'idle') overloadI.input = 1}}
+                            >1</button>
+                            <button
+                                class:selected={overloadI.input === 2}
+                                onclick={() => {if (appState === 'idle') overloadI.input = 2}}
+                            >2</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="section-element">
-                    <button onclick={onClickStart}>Отпустить груз</button>
+                    <button class="fw-button" onclick={onClickStart}>Отпустить груз</button>
                 </div>
             </section>
 
@@ -504,7 +435,7 @@
                 </div>
                 <div class="divider"></div>
                 <div class="section-element">
-                    <button onclick={onClickRepeat}>Поднять груз</button>
+                    <button class="fw-button" onclick={onClickRepeat}>Поднять груз</button>
                 </div>
             </section>
         </div>

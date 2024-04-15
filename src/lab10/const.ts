@@ -1,35 +1,30 @@
 import type { Range } from '../lib/range-util'
 import { range } from '../lib/range-util'
 
-export const pxPerMeter = 1000
-export const sceneHeight = .55 /* meters */
-export const sceneHeightPx = sceneHeight * pxPerMeter
+// export const pxPerMeter = 1000
+// export const sceneHeight = .55 /* meters */
+// export const sceneHeightPx = sceneHeight * pxPerMeter
+export const pxPerSm = 10
+export const sceneHeight = 55
+export const sceneHeightPx = sceneHeight * pxPerSm
 
 export const ranges = (function createRanges() {
     // сантиметры
     const R = range(6, 10)
     const S1 = range(10, 20)
     const S2 = range(10, 20)
-    // todo
-    // const R = range(6, 10)
-    // const S1 = range(0, 20)
-    // const S2 = range(0, 20)
 
     return {
-        physical: {
-            m: range(5, 20) /* граммы */,
-            M: range(50, 100) /* граммы */,
-            R,
-            S1,
-            S2,
-        } as const,
-        px: {
-            loadSize: range(20, 40),
-            pulleyRadius: range(R.min / 100 * pxPerMeter, R.max / 100 * pxPerMeter),
-            overloadSize: range(10, 20),
-            S1: range(S1.min / 100 * pxPerMeter, S1.max / 100 * pxPerMeter),
-            S2: range(S2.min / 100 * pxPerMeter, S2.max / 100 * pxPerMeter),
-        } as const
+        /* граммы */
+        M: range(50, 100),
+        m: range(5, 20),
+
+        /* сантиметры */
+        R,
+        S1,
+        S2,
+        L: range(2, 4),
+        O: range(1, 2)
     } as const
 })()
 

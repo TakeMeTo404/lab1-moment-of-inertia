@@ -110,7 +110,7 @@
         line-height: 1em;
     }
 
-    button {
+    .fw-button {
         border: none;
         text-align: center;
         width: 100%;
@@ -129,6 +129,35 @@
         &.blue {
             background: transparent;
             color: #3070B9;
+        }
+    }
+
+    .button-group {
+        display: flex;
+
+        button {
+            border: none;
+            text-align: center;
+            color: white;
+            font-size: 16px;
+            padding: 4px 12px;
+            outline: 1px solid rgb(100, 100, 100);
+            cursor: pointer;
+
+            &:first-child {
+                border-radius: 4px 0 0 4px;
+            }
+            &:last-child {
+                border-radius: 0 4px 4px 0;
+            }
+
+            &.selected {
+                background: hsla(12 0% 60% / 20%);
+            }
+
+            &:not(.selected) {
+                background: transparent;
+            }
         }
     }
 }
