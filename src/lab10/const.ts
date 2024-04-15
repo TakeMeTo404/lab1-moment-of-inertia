@@ -23,8 +23,8 @@ export const ranges = (function createRanges() {
         R,
         S1,
         S2,
-        L: range(2, 4),
-        O: range(1, 2)
+        L: range(3, 5),
+        O: range(2, 4)
     } as const
 })()
 

@@ -8,7 +8,6 @@
     import { untrack } from 'svelte';
     import '../lib/ui-kit.scss'
     import { appSizeController } from '../lib/app-sizes-controller.svelte';
-    import Debil from './Debil.svelte';
 
     let appSizes = appSizeController({ width: 1600, height: 900, minFraction: 16 / 11, maxFraction: 20 / 9 })
     let appState = $state<'idle' | 'falling-phase-1' | 'falling-phase-2' | 'fall-done' | 'raising-phase-1' | 'raising-phase-2'>('idle')
@@ -105,22 +104,22 @@
         }
     }
 
-    // const variant = input({ title: 'Номер варианта', range: variantRange })
-    // const inputM = input({ title: 'M – масса грузов (г.)', range: ranges.M, tweenMs: 1000 })
-    // const inputM1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000 })
-    // const inputM2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000 })
-    // const inputR = input({ title: 'R – радиус шкива (см.)', range: ranges.R, tweenMs: 1000 })
-    // const inputS1 = input({ title: 'S1 – расстояние (см.)', range: ranges.S1, tweenMs: 1000 })
-    // const inputS2 = input({ title: 'S2 – расстояние (см.)', range: ranges.S2, tweenMs: 1000 })
-    // const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500 })
-    const variant = input({ title: 'Номер варианта', range: variantRange, initialValue: random(1, 30) })
-    const inputM = input({ title: 'M – масса грузов (г.)', range: ranges.M, tweenMs: 1000, initialValue: random(50, 100) })
-    const inputM1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000, initialValue: random(5, 20) })
-    const inputM2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000, initialValue: random(5, 20) })
-    const inputR = input({ title: 'R – радиус шкива (см.)', range: ranges.R, tweenMs: 1000, initialValue: random(6, 10) })
-    const inputS1 = input({ title: 'S1 – расстояние (см.)', range: ranges.S1, tweenMs: 1000, initialValue: random(10, 20) })
-    const inputS2 = input({ title: 'S2 – расстояние (см.)', range: ranges.S2, tweenMs: 1000, initialValue: random(10, 20) })
-    const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500, initialValue: random(1, 2) })
+    const variant = input({ title: 'Номер варианта', range: variantRange })
+    const inputM = input({ title: 'M – масса грузов (г.)', range: ranges.M, tweenMs: 1000 })
+    const inputM1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000 })
+    const inputM2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000 })
+    const inputR = input({ title: 'R – радиус шкива (см.)', range: ranges.R, tweenMs: 1000 })
+    const inputS1 = input({ title: 'S1 – расстояние (см.)', range: ranges.S1, tweenMs: 1000 })
+    const inputS2 = input({ title: 'S2 – расстояние (см.)', range: ranges.S2, tweenMs: 1000 })
+    const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500 })
+    // const variant = input({ title: 'Номер варианта', range: variantRange, initialValue: random(1, 30) })
+    // const inputM = input({ title: 'M – масса грузов (г.)', range: ranges.M, tweenMs: 1000, initialValue: random(50, 100) })
+    // const inputM1 = input({ title: 'm1 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000, initialValue: random(5, 20) })
+    // const inputM2 = input({ title: 'm2 – масса 1 перегрузка (г.)', range: ranges.m, tweenMs: 1000, initialValue: random(5, 20) })
+    // const inputR = input({ title: 'R – радиус шкива (см.)', range: ranges.R, tweenMs: 1000, initialValue: random(6, 10) })
+    // const inputS1 = input({ title: 'S1 – расстояние (см.)', range: ranges.S1, tweenMs: 1000, initialValue: random(10, 20) })
+    // const inputS2 = input({ title: 'S2 – расстояние (см.)', range: ranges.S2, tweenMs: 1000, initialValue: random(10, 20) })
+    // const overloadI = input({ title: '', range: { min: 1, max: 2 }, tweenMs: 500, initialValue: random(1, 2) })
 
     const allInputs = [variant, inputM, inputM1, inputM2, inputR, inputS1, inputS2, overloadI]
 
@@ -238,24 +237,6 @@
       return overloadI.value === 1 ? a1: a2
     }
 
-    const onClickStart = () => {
-        if (appState !== 'idle') {
-          return
-        }
-
-        if (!allInputsValid) {
-            allInputs.forEach(input => input.revealErrorIfIтvalid())
-            return
-        }
-
-        if (tweening) {
-            console.warn('cannot start while tweening');
-            return
-        }
-
-        fall()
-    }
-
     const fall = async () => {
         console.log("")
         const a = acceleration()
@@ -300,6 +281,24 @@
         unsubscribe()
 
         appState = 'fall-done'
+    }
+
+    const onClickStart = () => {
+        if (appState !== 'idle') {
+          return
+        }
+
+        if (!allInputsValid) {
+            allInputs.forEach(input => input.revealErrorIfIтvalid())
+            return
+        }
+
+        if (tweening) {
+            console.warn('cannot start while tweening');
+            return
+        }
+
+        fall()
     }
 
     const onClickRepeat = async () => {
@@ -468,7 +467,6 @@
 
     .scene-center {
         position: absolute;
-        border: 2px solid red;
 
         width: 1px;
         height: 1px;
@@ -479,7 +477,6 @@
 
     .scene {
         position: absolute;
-        border: 2px solid blue;
 
         @include centered;
     }
@@ -505,16 +502,14 @@
         background-position: center center;
         background-repeat: no-repeat;
 
-        background-color: red;
-
         &.left-load {
-            //background-image: url("./assets/load1.png");
+            background-image: url("./assets/load1.png");
             left: 0;
             translate: -50% 0;
         }
 
         &.right-load {
-            //background-image: url("./assets/load2.png");
+            background-image: url("./assets/load2.png");
             right: 0;
             translate: 50% 0;
         }
@@ -527,27 +522,27 @@
         background-position: center center;
         background-repeat: no-repeat;
 
-        background-color: green;
+        background-color: red;
 
         right: 0;
         translate: 50% 0;
     }
 
     .thread {
-        //width: 1px;
-        //background: black;
+        width: 1px;
+        background: black;
         position: absolute;
         top: 0;
 
-        width: 4px;
-        background: yellow;
+        /* width: 4px;
+        background: yellow; */
     }
 
     .ring {
         position: absolute;
         width: 50px;
         height: 5px;
-        background-color: chocolate;
+        background-color: red;
         right: 0;
         translate: 100% 100%;
     }
