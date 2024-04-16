@@ -1,15 +1,15 @@
 <script lang="ts">
     import { pipe } from 'lodash/fp'
-    import { random } from 'lodash'
     import { tweened } from 'svelte/motion'
+    import { random } from 'lodash'
     import { variantToI, ranges, sceneHeightPx, sceneHeight, variantRange, pxPerSm } from './const'
     import type { Range } from '../lib/range-util'
-    import { inRange, mid, calcFr, lerp } from '../lib/range-util'
+    import { inRange, mid, calcFr, lerp, range } from '../lib/range-util'
     import { untrack } from 'svelte';
     import '../lib/ui-kit.scss'
     import { appSizeController } from '../lib/app-sizes-controller.svelte';
 
-    let appSizes = appSizeController({ width: 1600, height: 900, minFraction: 16 / 11, maxFraction: 20 / 9 })
+    let appSizes = appSizeController({ width: 1600, height: 900, minFraction: 12 / 9, maxFraction: 16 / 9 })
     let appState = $state<'idle' | 'falling-phase-1' | 'falling-phase-2' | 'fall-done' | 'raising-phase-1' | 'raising-phase-2'>('idle')
 
     type InputConfig = { title: string, range: Range, tweenMs?: number, initialValue?: number }
@@ -94,7 +94,7 @@
             get error() { return error },
             get valid() { return valid },
             get showError() { return showError },
-            revealErrorIfIтvalid() { if (!valid) showError = false },
+            revealErrorIfIтvalid() { if (!valid) showError = true },
 
             get value() { return value },
             get tweening() { return tweening },
@@ -126,11 +126,6 @@
     const allInputsValid = $derived(allInputs.every(input => input.valid))
     const tweening = $derived(allInputs.some(input => input.tweening))
 
-    // $inspect(allInputsValid).with((_, v) => console.log('allInputsValid := ', v))
-    // $inspect(tweening).with((_, v) => console.log('tweening := ', v))
-    // $effect(() => console.log('allInputsValid = ', allInputsValid))
-    // $effect(() => console.log('tweening = ', tweening))
-
     const M = $derived(inputM.value)
     const m1 = $derived(inputM1.value)
     const m2 = $derived(inputM2.value)
@@ -140,7 +135,7 @@
 
     const g = 9.81
     const pi = 3.1415
-    const I = $derived(variantToI[Math.round(variant.value)])
+    const rnd = Math.random()
 
     /* L – loads size in sm. h1/h2 – heights of left and right loads */
     let L = $state(0)
@@ -193,7 +188,10 @@
     })
 
     const acceleration = (): number => {
-      let rnd = $state(Math.random())
+      const I = pipe(
+          v => variantToI[v],
+          I => I * random(.9, 1.1, true)
+      )(variant.value)
 
       const [a1, a2] = (function () {
           if (m2 <= m1) {
@@ -204,8 +202,13 @@
             minA1 += .1
             const maxA1 = minA1 + .5
 
-            const a1 = minA1 + (maxA1 - minA1) * rnd
-            console.log(`rnd = ${rnd}`)
+            const frM1 = calcFr(ranges.m)(m1)
+            const frI = calcFr(range(ranges.I.min * .9, ranges.I.max * 1.1))(I)
+            const frRnd = Math.random()
+            const fr = (frM1 + frI + frRnd) / 3
+
+            const a1 = minA1 + (maxA1 - minA1) * fr
+            // console.log(`rnd = ${rnd}`)
             const a2 = (a1 * (I + (R**2) * (2 * M + m1)) - (R ** 2) * (m1 - m2) * g) /
               (I + (R**2) * (2 * M + m2))
 
@@ -218,8 +221,13 @@
             minA2 += .1
             const maxA2 = minA2 + .5
 
-            const a2 = minA2 + (maxA2 - minA2) * rnd
-            console.log(`inverse rnd = ${rnd}`)
+            const frM2 = calcFr(ranges.m)(m2)
+            const frI = calcFr(range(ranges.I.min * .9, ranges.I.max * 1.1))(I)
+            const frRnd = Math.random()
+            const fr = (frM2 + frI + frRnd) / 3
+
+            const a2 = minA2 + (maxA2 - minA2) * fr
+            // console.log(`inverse rnd = ${rnd}`)
 
             const a1 =
               (a2 * (I + R**2 * (2 * M + m2)) + R**2 * (m1 - m2) * g)
@@ -289,6 +297,7 @@
         }
 
         if (!allInputsValid) {
+            console.log('here')
             allInputs.forEach(input => input.revealErrorIfIтvalid())
             return
         }
@@ -363,11 +372,10 @@
 
     <div class="ui-holder">
         <div class="ui">
-            <!-- <Debil></Debil> -->
             <h1>Лабораторная работа №10</h1>
 
             {#snippet numberInput(input)}
-                <div class="section-element">
+                <div class="section-element with-input">
                     <div class="flex">
                         <span>{input.title}</span>
                         <input
@@ -384,16 +392,16 @@
                 </div>
             {/snippet}
 
-            <section style="padding-top: 2rem;">
+            <section style="padding-top: 1.5rem;">
                 {@render numberInput(variant)}
             </section>
 
-            <section style="padding-top: 1.5rem;">
+            <section style="padding-top: 1rem;">
                 {#each [inputM, inputM1, inputM2, inputR, inputS1, inputS2] as input}
                     {@render numberInput(input)}
                     <div class="divider"></div>
                 {/each}
-                <div class="section-element">
+                <div class="section-element with-input">
                     <div class="flex">
                         <span>Номер перегрузка</span>
                         <div class="button-group">
@@ -406,6 +414,9 @@
                                 onclick={() => {if (appState === 'idle') overloadI.input = 2}}
                             >2</button>
                         </div>
+                        {#if !overloadI.valid && overloadI.showError}
+                            <span class="error red">{ overloadI.error }</span>
+                        {/if}
                     </div>
                 </div>
 
@@ -414,7 +425,7 @@
                 </div>
             </section>
 
-            <section style="padding-top: 1.5rem; padding-bottom: 1.5rem;">
+            <section style="padding-top: 1rem; padding-bottom: 1rem;">
                 <div class="section-element">
                     <div class="flex">
                         <span>t1 – время 1-го этапа падения (с.)</span>
@@ -529,7 +540,7 @@
     }
 
     .thread {
-        width: 1px;
+        width: 2px;
         background: black;
         position: absolute;
         top: 0;

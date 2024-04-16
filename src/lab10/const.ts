@@ -1,35 +1,11 @@
 import type { Range } from '../lib/range-util'
 import { range } from '../lib/range-util'
+import  { max, min, values } from 'lodash'
 
-// export const pxPerMeter = 1000
-// export const sceneHeight = .55 /* meters */
-// export const sceneHeightPx = sceneHeight * pxPerMeter
 export const pxPerSm = 10
 export const sceneHeight = 55
 export const sceneHeightPx = sceneHeight * pxPerSm
 
-export const ranges = (function createRanges() {
-    // сантиметры
-    const R = range(6, 10)
-    const S1 = range(10, 20)
-    const S2 = range(10, 20)
-
-    return {
-        /* граммы */
-        M: range(50, 100),
-        m: range(5, 20),
-
-        /* сантиметры */
-        R,
-        S1,
-        S2,
-        L: range(3, 5),
-        O: range(2, 4)
-    } as const
-})()
-
-
-// TODO: change them
 export const variantToI: Record<number, number> = {
 	1: 0.00015,
 	2: 0.00012,
@@ -63,5 +39,29 @@ export const variantToI: Record<number, number> = {
 	30: 0.00034,
 }
 
+const xx = values(variantToI)
+
+export const ranges = (function createRanges() {
+    // сантиметры
+    const R = range(6, 10)
+    const S1 = range(10, 20)
+    const S2 = range(10, 20)
+
+    return {
+        /* граммы */
+        M: range(50, 100),
+        m: range(5, 20),
+
+        /* сантиметры */
+        R,
+        S1,
+        S2,
+        L: range(3, 5),
+        O: range(2, 4),
+
+        I: range(min(values(variantToI)) as number, max(values(variantToI)) as number),
+        variant: range(1, 30),
+    } as const
+})()
 
 export const variantRange: Range = range(1, 30)
