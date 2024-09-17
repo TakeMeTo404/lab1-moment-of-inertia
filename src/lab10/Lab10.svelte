@@ -7,9 +7,9 @@
     import { inRange, mid, calcFr, lerp, range } from '../lib/range-util'
     import { untrack } from 'svelte';
     import '../lib/ui-kit.scss'
-    import { appSizeController } from '../lib/app-sizes-controller.svelte';
+    import { appScaler } from '../lib/app-scaler.svelte';
 
-    let appSizes = appSizeController({ width: 1600, height: 900, minFraction: 12 / 9, maxFraction: 16 / 9 })
+    let appSizes = appScaler({ width: 1600, height: 900, minFraction: 12 / 9, maxFraction: 16 / 9 })
     let appState = $state<'idle' | 'falling-phase-1' | 'falling-phase-2' | 'fall-done' | 'raising-phase-1' | 'raising-phase-2'>('idle')
 
     type InputConfig = { title: string, range: Range, tweenMs?: number, initialValue?: number }
@@ -297,7 +297,6 @@
         }
 
         if (!allInputsValid) {
-            console.log('here')
             allInputs.forEach(input => input.revealErrorIfIтvalid())
             return
         }
