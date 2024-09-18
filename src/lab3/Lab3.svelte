@@ -108,23 +108,23 @@ const input = ({
     }
 }
 
-// const variant = input({ title: 'Номер варианта', range: range(1, 30) })
-// const inputM = input({ title: 'm – массы шаров (г.)', range: ranges.m, tweenMs: 1000 })
-// const inputL = input({ title: 'l – длина нити (мм.)', range: range(300, 600), tweenMs: 1000 })
-// const inputAlpha = input({ title: 'α – угол отклонения 2 шара (град.)', range: ranges.a, tweenMs: 1000 })
-const variant = input({ title: 'Номер варианта', range: range(1, 30), initialValue: 1 })
-const inputM = input({ title: 'm – массы шаров (г.)', range: ranges.m, tweenMs: 1000, initialValue: 100 })
-const inputL = input({ title: 'l – длина нити (cм.)', range: ranges.L, tweenMs: 1000, initialValue: 60 })
-// const inputAlpha = input({ title: 'α – угол отклонения 2 шара (град.)', range: ranges.a, tweenMs: 1000, initialValue: 30 })
+const variant = input({ title: 'Номер варианта', range: range(1, 30) })
+const inputM = input({ title: 'm – массы шаров (г.)', range: ranges.m, tweenMs: 1000 })
+const inputL = input({ title: 'l – длина нити (cм.)', range: ranges.L, tweenMs: 1000 })
+const inputAlpha = input({ title: 'α – угол отклонения 2 шара (град.)', range: ranges.a, tweenMs: 300, initialValue: variantToAlpha[Math.round(variant.value)] })
 
-const allInputs = [ variant, inputM, inputL ]
+$effect(() => {
+    inputAlpha.input = variantToAlpha[Math.round(variant.value)]
+})
+
+const allInputs = [ variant, inputM, inputL, inputAlpha ]
 
 const allInputsValid = $derived(allInputs.every(input => input.valid))
 const tweening = $derived(allInputs.some(input => input.tweening))
 
 const M = $derived(inputM.value) // граммы
 const L = $derived(inputL.value) // миллиметры
-const a = $derived(variantToAlpha[variant.value]) // градусы
+const a = $derived(inputAlpha.value) // градусы
 
 const Nu = $derived(variantToNu[variant.value])
 
@@ -298,7 +298,7 @@ const fall = async () => {
 
 const onClickStart = () => {
     if (appState !== 'idle') {
-      return
+        return
     }
 
     if (!allInputsValid) {
@@ -458,7 +458,7 @@ const onClickRepeat = async () => {
         top: 50%;
         translate: -50% -50%;
         background-size: contain;
-        /* background-image: url("./assets/bg.jpg"); */
+        background-image: url("./assets/bg.jpg");
         background-repeat: no-repeat;
     }
 
