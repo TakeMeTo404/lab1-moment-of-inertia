@@ -4,7 +4,7 @@ import { untrack } from 'svelte'
 import { sceneScale } from '../lib/scene-scale.svelte'
 import { inRange, mid, calcFr, lerp, range, type Range } from '../lib/range-util'
 import { pipe } from '../lib/pipe'
-import { ranges, pxPerSm, variantToNu } from './const'
+import { ranges, pxPerSm, variantToNu, variantToAlpha } from './const'
 import { vec2 } from '../lib/vector/vector'
 import '../lib/ui-kit.scss'
 
@@ -115,16 +115,16 @@ const input = ({
 const variant = input({ title: 'Номер варианта', range: range(1, 30), initialValue: 1 })
 const inputM = input({ title: 'm – массы шаров (г.)', range: ranges.m, tweenMs: 1000, initialValue: 100 })
 const inputL = input({ title: 'l – длина нити (cм.)', range: ranges.L, tweenMs: 1000, initialValue: 60 })
-const inputAlpha = input({ title: 'α – угол отклонения 2 шара (град.)', range: ranges.a, tweenMs: 1000, initialValue: 30 })
+// const inputAlpha = input({ title: 'α – угол отклонения 2 шара (град.)', range: ranges.a, tweenMs: 1000, initialValue: 30 })
 
-const allInputs = [ variant, inputM, inputL, inputAlpha ]
+const allInputs = [ variant, inputM, inputL ]
 
 const allInputsValid = $derived(allInputs.every(input => input.valid))
 const tweening = $derived(allInputs.some(input => input.tweening))
 
 const M = $derived(inputM.value) // граммы
 const L = $derived(inputL.value) // миллиметры
-const a = $derived(inputAlpha.value) // градусы
+const a = $derived(variantToAlpha[variant.value]) // градусы
 
 const Nu = $derived(variantToNu[variant.value])
 
@@ -236,7 +236,7 @@ const fall = async () => {
     unsubscribe()
 
     let beta = a * pi / 180 * .8
-    beta = beta * (random() * 0.1 + 0.95)
+    beta = beta * (0.95 + 0.1 * random())
 
     let t2 = t1
 
@@ -260,8 +260,40 @@ const fall = async () => {
 
     appState = 'fall-done'
 
-    const studentNu = 2 * sqrt((1 - cos(displayedBeta)) * (1 - cos(a * pi / 180))) - 2 * (1 - cos(displayedBeta))
-    console.log(`studentNu = ${studentNu}`)
+    const aaa = sqrt(1 - cos(a * pi / 180))
+    const bbb = sqrt(1 - cos(displayedBeta))
+
+    console.log(cos(a * pi / 180), cos(displayedBeta))
+
+    const studentNu = 2 * (aaa * bbb - bbb * bbb) / (aaa * aaa)
+
+    const studentNu2 = 2 * sqrt((1 - cos(displayedBeta)) * (1 - cos(a * pi / 180))) - 2 * (1 - cos(displayedBeta))
+
+    console.log(`realNu = ${Nu.toFixed(3)}`)
+    console.log(`studentNu = ${studentNu.toFixed(3)}`)
+
+    ;(function realBetas() {
+        return
+        const A = sqrt(1 - cos(a * pi / 180))
+
+        const D = A * A - 2 * A * Nu * Nu * 0.6
+
+        console.log('A = ', A)
+        console.log('D = ', D)
+
+        const v1 = 1 - (A + sqrt(D)) * (A + sqrt(D)) / 4
+        const v2 = 1 - (A - sqrt(D)) * (A - sqrt(D)) / 4
+
+        console.log('v1 = ', v1)
+        console.log('v2 = ', v2)
+
+        const beta1 = acos(1 - (A + sqrt(D)) * (A + sqrt(D)) / 4)
+        const beta2 = acos(1 - (A - sqrt(D)) * (A - sqrt(D)) / 4)
+
+        console.log('beta1 = ', beta1 / pi * 180)
+        console.log('beta2 = ', beta2 / pi * 180)
+
+    })()
 }
 
 const onClickStart = () => {
@@ -366,10 +398,20 @@ const onClickRepeat = async () => {
             </section>
 
             <section style="padding-top: 1rem;">
-                {#each [inputL, inputM, inputAlpha] as input}
+                {#each [inputL, inputM] as input}
                     {@render numberInput(input)}
                     <div class="divider"></div>
                 {/each}
+
+                <div class="section-element">
+                    <div class="flex">
+                        <span>α – угол отклонения 2 шара (град.)</span>
+                        {#if a }
+                            <span>{ (a).toFixed(1) }</span>
+                        {/if}
+                    </div>
+                </div>
+                <div class="divider"></div>
 
                 <div class="section-element">
                     <button class="fw-button" onclick={onClickStart}>Отпустить шар</button>
@@ -390,7 +432,7 @@ const onClickRepeat = async () => {
                     <div class="flex">
                         <span>β – угол отклонения 1 шара (град.)</span>
                         {#if appState === 'falling-1' || appState === 'falling-2' || appState === 'fall-done'}
-                            <span>{ Math.round(displayedBeta / pi * 180) }</span>
+                            <span>{ (displayedBeta / pi * 180).toFixed(1) }</span>
                         {/if}
                     </div>
                 </div>
@@ -403,23 +445,18 @@ const onClickRepeat = async () => {
     </div>
 </div>
 
-<style lang="scss">
+<style>
     :global(*) {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
     }
 
-    @mixin centered {
+    .app {
+        position: fixed;
         left: 50%;
         top: 50%;
         translate: -50% -50%;
-    }
-
-    .app {
-        position: fixed;
-        @include centered;
-
         background-size: contain;
         /* background-image: url("./assets/bg.jpg"); */
         background-repeat: no-repeat;
